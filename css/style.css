@@ -1,0 +1,195 @@
+/* ============================================================================
+   ADNA MOMENTS — MODERN GLASS & ROMANTIC LUXURY STYLES
+   ============================================================================ */
+
+:root {
+  --color-bg-dark: #09060a;
+  --color-brand-primary: #e11d48;
+  --color-brand-glow: rgba(225, 29, 72, 0.35);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* Global Reset & Base */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--color-bg-dark);
+  background-image: 
+    radial-gradient(circle at 15% 10%, rgba(225, 29, 72, 0.12), transparent 45%),
+    radial-gradient(circle at 85% 25%, rgba(136, 19, 55, 0.18), transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(225, 29, 72, 0.10), transparent 50%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  min-height: 100vh;
+  padding-bottom: calc(4.5rem + var(--safe-bottom));
+}
+
+@media (min-width: 640px) {
+  body {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(9, 6, 10, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: #4c0519;
+  border-radius: 9999px;
+  border: 1px solid rgba(225, 29, 72, 0.2);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #e11d48;
+}
+
+/* Glassmorphism Components */
+.glass-nav {
+  background: rgba(9, 6, 10, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(225, 29, 72, 0.18);
+}
+
+.glass-panel {
+  background: rgba(20, 10, 16, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(225, 29, 72, 0.18);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  border-color: rgba(251, 113, 133, 0.35);
+  box-shadow: 0 15px 35px -5px rgba(225, 29, 72, 0.25);
+}
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(225, 29, 72, 0.25);
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+.glass-input:focus {
+  border-color: #f43f5e;
+  box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.25);
+  outline: none;
+}
+
+/* Netflix Style Romantic Media Cards */
+.media-card {
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  transform-origin: center bottom;
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(20, 10, 16, 0.6);
+  border: 1px solid rgba(225, 29, 72, 0.18);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .media-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    z-index: 20;
+    box-shadow: 0 20px 35px -10px rgba(225, 29, 72, 0.4), 0 0 25px rgba(0, 0, 0, 0.9);
+    border-color: rgba(251, 113, 133, 0.6);
+  }
+  .media-card:hover .card-overlay {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-overlay {
+  opacity: 1;
+  background: linear-gradient(to top, rgba(9, 6, 10, 0.95) 0%, rgba(9, 6, 10, 0.6) 45%, transparent 100%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .card-overlay {
+    opacity: 0.85;
+  }
+}
+
+/* Image Shimmer / Skeleton Loader */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(225, 29, 72, 0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeInScale {
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page Section visibility */
+.page-section {
+  display: none;
+}
+.page-section.active {
+  display: block;
+  animation: fadeInScale 0.35s ease-out;
+}
+
+/* Safe Area Utility */
+.pb-safe {
+  padding-bottom: max(0.5rem, var(--safe-bottom));
+}
+
+/* Modal Backdrop & Transitions */
+#mediaModal {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Toast Notifications */
+.toast-enter {
+  transform: translateY(100%) scale(0.95);
+  opacity: 0;
+}
+.toast-active {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* PWA Install Banner Glow */
+.pwa-glow {
+  box-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
+}
+
+/* Mobile Touch Optimization */
+@media (max-width: 640px) {
+  button, select, input {
+    font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+  }
+}

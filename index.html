@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  
+  <title>ADNA Moments — Cloud Media Gallery</title>
+  <meta name="description" content="Galeri cloud foto & video kenangan romantis bersama orang tersayang, terhubung langsung ke Google Drive." />
+  
+  <!-- PWA & Mobile Web App Meta -->
+  <meta name="theme-color" content="#09060a" />
+  <meta name="application-name" content="ADNA Moments" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ADNA Moments" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ADNA Moments — Cloud Media Gallery" />
+  <meta property="og:description" content="Galeri cloud foto & video kenangan romantis bersama orang tersayang." />
+  <meta property="og:image" content="icons/icon-512.png" />
+
+  <!-- Web App Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              300: '#fda4af',
+              400: '#fb7185',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+              950: '#4c0519',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Custom App Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="selection:bg-brand-600 selection:text-white antialiased font-sans flex flex-col min-h-screen">
+
+  <!-- ============================================== -->
+  <!-- TOP NAVBAR                                     -->
+  <!-- ============================================== -->
+  <header class="fixed top-0 left-0 w-full z-40 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="#gallery" onclick="App.switchPage('gallery')" class="flex items-center gap-3 cursor-pointer group" aria-label="ADNA Moments Beranda">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-brand-500 to-brand-900 p-[2px] shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform duration-300">
+          <div class="w-full h-full bg-[#0d070b] rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-brand-400 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-serif font-bold text-xl sm:text-2xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-100 to-rose-300">
+            ADNA
+          </span>
+          <span class="text-[10px] sm:text-xs text-brand-400 uppercase tracking-[0.25em] -mt-1 font-semibold">
+            Moments
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Actions -->
+      <div class="hidden sm:flex items-center gap-3">
+        <button onclick="App.switchPage('gallery')" id="nav-btn-gallery" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-brand-500/30 text-white bg-brand-600/25 shadow-[0_0_15px_rgba(225,29,72,0.3)]">
+          Koleksi Galeri
+        </button>
+
+        <button onclick="App.switchPage('upload')" id="nav-btn-upload" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 relative">
+          Unggah Kenangan
+          <span id="desk-queue-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center scale-0 opacity-0 transition-all duration-300 shadow-md">
+            0
+          </span>
+        </button>
+
+        <!-- Install PWA Button (Desktop) -->
+        <button id="pwaInstallBtnDesk" onclick="App.promptInstall()" class="hidden items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>Pasang App</span>
+        </button>
+
+        <!-- Settings Button -->
+        <button onclick="App.openSettings()" class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition" title="Pengaturan Server Cloud">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg>
+        </button>
+      </div>
+
+      <!-- Mobile Top Actions -->
+      <div class="flex sm:hidden items-center gap-2">
+        <button onclick="App.openSettings()" class="p-2 rounded-xl text-slate-400 hover:text-white bg-black/30 border border-white/5 transition" title="Pengaturan">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ============================================== -->
+  <!-- MAIN CONTENT CONTAINER                         -->
+  <!-- ============================================== -->
+  <main class="flex-grow pt-20 sm:pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+    
+    <!-- PWA Install Prompt Banner (Mobile & Desktop) -->
+    <div id="pwaInstallBanner" class="hidden mb-6 p-4 rounded-2xl glass-panel border-brand-500/40 bg-gradient-to-r from-brand-950/40 via-black/40 to-brand-950/40 flex flex-col sm:flex-row items-center justify-between gap-4 pwa-glow">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <div class="w-10 h-10 rounded-xl bg-brand-600/30 flex items-center justify-center flex-shrink-0 text-brand-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-white">Pasang Aplikasi ADNA Moments</h4>
+          <p class="text-xs text-rose-200/70">Akses galeri lebih cepat langsung dari layar utama layaknya aplikasi native!</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <button onclick="document.getElementById('pwaInstallBanner').classList.add('hidden')" class="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition">
+          Nanti Saja
+        </button>
+        <button onclick="App.promptInstall()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+          Pasang Sekarang
+        </button>
+      </div>
+    </div>
+
+    <!-- iOS Safari Install Instruction Banner -->
+    <div id="iosInstallBanner" class="hidden mb-6 p-4 rounded-2xl glass-panel border-brand-500/30 bg-black/60 flex items-start justify-between gap-3">
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-900/50 flex items-center justify-center flex-shrink-0 text-brand-300 mt-0.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+        </div>
+        <div class="text-xs text-slate-300">
+          <p class="font-semibold text-white mb-0.5">Pasang di iPhone / iPad:</p>
+          <p>Ketuk tombol <span class="font-semibold text-brand-300">Bagikan (Share)</span> di bilah bawah Safari, lalu pilih <span class="font-semibold text-brand-300">"Tambah ke Layar Utama" (Add to Home Screen)</span>.</p>
+        </div>
+      </div>
+      <button onclick="App.dismissIosBanner()" class="text-slate-400 hover:text-white p-1" title="Tutup">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- GALLERY VIEW                                   -->
+    <!-- ============================================== -->
+    <section id="gallery-page" class="page-section active pb-12">
+      
+      <!-- Hero Banner -->
+      <div class="relative w-full h-48 sm:h-64 rounded-3xl overflow-hidden mb-6 sm:mb-8 glass-panel flex items-center justify-center text-center px-4 sm:px-6 shadow-2xl">
+        <div class="absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-950/60 to-[#09060a]/95 z-0"></div>
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-950/60 border border-brand-500/25 text-brand-300 text-xs font-semibold mb-3">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span>Kenangan Abadi Kita</span>
+          </div>
+          <h1 class="font-serif text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 text-white drop-shadow-md">
+            Jejak Waktu Kita
+          </h1>
+          <p class="text-xs sm:text-sm text-rose-200/80 font-light max-w-xl mx-auto leading-relaxed">
+            Setiap momen memiliki ceritanya sendiri. Temukan kembali senyum, tawa, dan perjalanan indah yang telah diabadikan bersama.
+          </p>
+        </div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="glass-panel p-4 sm:p-5 rounded-2xl sm:rounded-3xl mb-8 space-y-4 shadow-xl">
+        
+        <!-- Row 1: Search & Type Pills -->
+        <div class="flex flex-col md:flex-row gap-3 sm:gap-4 items-center justify-between">
+          
+          <!-- Instant Search Input -->
+          <div class="relative w-full md:w-80">
+            <input 
+              type="text" 
+              id="gallerySearch" 
+              placeholder="Cari nama momen..." 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-4 placeholder-slate-400 transition"
+            />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+
+          <!-- Type Filter Pills -->
+          <div class="flex bg-black/50 p-1 rounded-2xl border border-white/5 w-full md:w-auto justify-between sm:justify-start">
+            <button onclick="GalleryManager.setTypeFilter('all')" id="filter-type-all" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all">
+              Semua
+            </button>
+            <button onclick="GalleryManager.setTypeFilter('photo')" id="filter-type-photo" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+              Foto
+            </button>
+            <button onclick="GalleryManager.setTypeFilter('video')" id="filter-type-video" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+              Video
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Row 2: Date Filters & Sort Controls -->
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 pt-2 border-t border-white/5">
+          
+          <!-- Year Select -->
+          <div class="flex-1 sm:flex-initial">
+            <select id="filterYear" onchange="GalleryManager.applyFilters()" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
+              <option value="">Semua Tahun</option>
+            </select>
+          </div>
+
+          <!-- Month Select -->
+          <div class="flex-1 sm:flex-initial">
+            <select id="filterMonth" onchange="GalleryManager.applyFilters()" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
+              <option value="">Semua Bulan</option>
+              <option value="01">Januari</option>
+              <option value="02">Februari</option>
+              <option value="03">Maret</option>
+              <option value="04">April</option>
+              <option value="05">Mei</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">Agustus</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">Desember</option>
+            </select>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="flex-1 sm:flex-initial">
+            <select id="sortSelect" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
+              <option value="newest">Terbaru Dulu</option>
+              <option value="oldest">Terlama Dulu</option>
+              <option value="name">Nama (A - Z)</option>
+            </select>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2 ml-auto">
+            <button onclick="GalleryManager.resetFilters()" class="p-2.5 text-xs text-slate-400 hover:text-white glass-input rounded-xl transition" title="Reset Filter">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <button onclick="GalleryManager.fetchGallery()" class="p-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition shadow-lg shadow-brand-600/25 group" title="Segarkan Data">
+              <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Loading State (Skeleton Grid) -->
+      <div id="gallery-loading" class="hidden py-16">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+          <div class="aspect-[3/4] sm:aspect-[4/5] rounded-2xl skeleton-shimmer border border-white/5"></div>
+          <div class="aspect-[3/4] sm:aspect-[4/5] rounded-2xl skeleton-shimmer border border-white/5"></div>
+          <div class="aspect-[3/4] sm:aspect-[4/5] rounded-2xl skeleton-shimmer border border-white/5"></div>
+          <div class="aspect-[3/4] sm:aspect-[4/5] rounded-2xl skeleton-shimmer border border-white/5"></div>
+          <div class="aspect-[3/4] sm:aspect-[4/5] rounded-2xl skeleton-shimmer border border-white/5"></div>
+        </div>
+        <div class="text-center mt-6">
+          <p class="text-xs sm:text-sm text-brand-300 font-medium animate-pulse">Menghubungkan ke Google Drive & memuat kenangan...</p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="gallery-empty" class="hidden py-16 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-brand-900/30 rounded-full flex items-center justify-center mb-4 border border-brand-500/20">
+          <svg class="w-8 h-8 sm:w-10 sm:h-10 text-brand-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <h3 class="text-lg sm:text-xl font-serif font-bold text-white mb-1.5">Belum Ada Momen</h3>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-sm mb-6">Tidak ada foto atau video yang sesuai dengan filter ini. Mulai abadikan momen sekarang.</p>
+        <button onclick="App.switchPage('upload')" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-full text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-brand-600/30">
+          Unggah Sekarang
+        </button>
+      </div>
+
+      <!-- Gallery Grid -->
+      <div id="gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+        <!-- Media cards will be dynamically injected here -->
+      </div>
+
+      <!-- Pagination Controls -->
+      <div id="pagination-controls" class="hidden mt-10 mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-brand-900/40 pt-6">
+        <div class="text-xs sm:text-sm text-slate-400">
+          Menampilkan <span id="page-info-start" class="font-semibold text-white">0</span> - <span id="page-info-end" class="font-semibold text-white">0</span> dari <span id="page-info-total" class="font-semibold text-brand-400">0</span> momen
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="GalleryManager.changePage(-1)" id="btn-prev-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Sebelumnya">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          
+          <div id="page-numbers" class="flex items-center gap-1.5">
+            <!-- Page number buttons injected here -->
+          </div>
+
+          <button onclick="GalleryManager.changePage(1)" id="btn-next-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Selanjutnya">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================== -->
+    <!-- UPLOAD VIEW                                    -->
+    <!-- ============================================== -->
+    <section id="upload-page" class="page-section pb-12">
+      <div class="max-w-2xl mx-auto mt-2 sm:mt-6">
+        
+        <div class="text-center mb-6 sm:mb-8">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-950/60 border border-brand-500/25 text-brand-300 text-xs font-semibold mb-3">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span>Unggah Otomatis ke Google Drive</span>
+          </div>
+          <h2 class="font-serif text-2xl sm:text-4xl font-bold text-white mb-2">Simpan Momen Baru</h2>
+          <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">Pilih foto atau video, tentukan waktunya, dan sistem akan langsung mengaturnya ke folder Google Drive kita.</p>
+        </div>
+
+        <div class="glass-panel p-5 sm:p-8 rounded-3xl shadow-2xl">
+          
+          <!-- Timeline Selectors -->
+          <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
+            <div>
+              <label for="uploadYear" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Tahun Momen</label>
+              <select id="uploadYear" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div>
+              <label for="uploadMonth" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Bulan Momen</label>
+              <select id="uploadMonth" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
+                <option value="01">01 - Januari</option>
+                <option value="02">02 - Februari</option>
+                <option value="03">03 - Maret</option>
+                <option value="04">04 - April</option>
+                <option value="05">05 - Mei</option>
+                <option value="06">06 - Juni</option>
+                <option value="07">07 - Juli</option>
+                <option value="08">08 - Agustus</option>
+                <option value="09">09 - September</option>
+                <option value="10">10 - Oktober</option>
+                <option value="11">11 - November</option>
+                <option value="12">12 - Desember</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Drag & Drop Zone -->
+          <div 
+            id="dropZone" 
+            class="border-2 border-dashed border-brand-800/80 rounded-2xl p-6 sm:p-10 text-center transition-all cursor-pointer hover:border-brand-500 hover:bg-brand-900/10 group relative overflow-hidden" 
+            onclick="document.getElementById('fileInput').click()"
+            role="button"
+            tabindex="0"
+          >
+            <input type="file" id="fileInput" multiple accept="image/*,video/*" class="hidden" />
+            
+            <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto bg-brand-900/40 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-brand-600/40 transition-all duration-300 border border-brand-500/20">
+              <svg class="w-7 h-7 sm:w-8 sm:h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <p class="text-white text-xs sm:text-sm font-semibold mb-1">Ketuk untuk memilih foto atau video</p>
+            <p class="text-slate-400 text-[11px] sm:text-xs">Atau seret dan lepas file langsung ke area ini</p>
+            <p class="text-rose-300/60 text-[10px] sm:text-[11px] mt-2">Format: JPG, PNG, WEBP, MP4, MOV (Maks. 25MB per file)</p>
+          </div>
+
+          <!-- Queue Header & Action -->
+          <div class="flex items-center justify-between mt-6 mb-3">
+            <h4 class="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider">Antrean Unggahan</h4>
+            <button id="clearCompletedBtn" onclick="UploadManager.clearCompleted()" class="hidden text-xs text-brand-300 hover:text-white transition">
+              Bersihkan yang selesai
+            </button>
+          </div>
+
+          <!-- Upload Queue List -->
+          <div id="uploadQueue" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+            <!-- Dynamically populated items -->
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MOBILE BOTTOM NAVIGATION                       -->
+  <!-- ============================================== -->
+  <nav class="sm:hidden fixed bottom-0 left-0 w-full z-40 pb-safe pt-2">
+    <div class="mx-4 mb-3 glass-nav rounded-2xl flex justify-around items-center p-1.5 shadow-[0_-5px_25px_rgba(0,0,0,0.6)] border border-brand-900/50">
+      
+      <button onclick="App.switchPage('gallery')" id="mob-nav-gallery" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-brand-400 bg-brand-900/40 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        <span class="text-[10px] font-semibold">Galeri</span>
+      </button>
+
+      <button onclick="App.switchPage('upload')" id="mob-nav-upload" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition relative">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-[10px] font-semibold">Unggah</span>
+        <span id="mob-queue-badge" class="absolute top-1 right-5 w-4 h-4 bg-brand-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center scale-0 opacity-0 transition-all duration-300">
+          0
+        </span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ============================================== -->
+  <!-- FULLSCREEN LIGHTBOX MODAL                      -->
+  <!-- ============================================== -->
+  <div id="mediaModal" class="fixed inset-0 z-50 bg-black/95 hidden items-center justify-center opacity-0 transition-opacity duration-300 p-2 sm:p-6" role="dialog" aria-modal="true">
+    
+    <!-- Top Action Bar -->
+    <div class="absolute top-3 left-3 sm:top-5 sm:left-6 flex items-center gap-3 z-50">
+      <span id="modalCounter" class="px-3 py-1 rounded-full bg-black/60 border border-white/10 text-white text-xs font-semibold backdrop-blur-md">
+        1 / 1
+      </span>
+    </div>
+
+    <div class="absolute top-3 right-3 sm:top-5 sm:right-6 flex items-center gap-2 z-50">
+      <!-- Open in Google Drive -->
+      <a id="modalDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Buka di Google Drive">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+      </a>
+
+      <!-- Download Button -->
+      <a id="modalDownloadLink" href="#" target="_blank" download class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Unduh File">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      </a>
+
+      <!-- Close Button -->
+      <button onclick="ModalManager.close()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Tutup (Esc)">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Navigation Chevrons -->
+    <button id="modalBtnPrev" onclick="ModalManager.prev()" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Sebelumnya">
+      <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+
+    <button id="modalBtnNext" onclick="ModalManager.next()" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Selanjutnya">
+      <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+    
+    <!-- Central Media Wrapper -->
+    <div id="modalContent" class="relative max-w-5xl w-full flex items-center justify-center scale-95 transition-transform duration-300">
+      <!-- Media dynamically injected here -->
+    </div>
+    
+    <!-- Bottom Caption Bar -->
+    <div class="absolute bottom-3 left-0 w-full text-center px-4 pointer-events-none">
+      <div class="inline-block bg-black/60 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/10 max-w-lg">
+        <h4 id="modalTitle" class="text-white font-serif text-sm sm:text-base font-semibold truncate drop-shadow-md"></h4>
+        <p id="modalDate" class="text-rose-200/80 text-[11px] sm:text-xs mt-0.5"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================== -->
+  <!-- CLOUD BACKEND SETTINGS MODAL                   -->
+  <!-- ============================================== -->
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg>
+          </div>
+          <h3 class="text-base sm:text-lg font-serif font-bold text-white">Pengaturan Cloud API</h3>
+        </div>
+        <button onclick="App.closeSettings()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-4">
+        URL Google Apps Script Web App yang menangani fetch dan upload media ke Google Drive.
+      </p>
+
+      <div class="mb-5">
+        <label for="settingApiUrlInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Google Apps Script Exec URL</label>
+        <input 
+          type="url" 
+          id="settingApiUrlInput" 
+          placeholder="https://script.google.com/macros/s/.../exec" 
+          class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none"
+        />
+        <p class="text-[11px] text-slate-500 mt-1.5">Pastikan URL berakhiran <code class="text-brand-300">/exec</code> dan di-deploy dengan akses "Anyone".</p>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
+        <button onclick="App.resetSettings()" class="text-xs text-slate-400 hover:text-white transition">
+          Reset Bawaan
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="App.closeSettings()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+            Batal
+          </button>
+          <button onclick="App.saveSettings()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+            Simpan Perubahan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER                   -->
+  <!-- ============================================== -->
+  <div id="toastContainer" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5 pointer-events-none w-[92%] sm:w-auto max-w-sm"></div>
+
+  <!-- ============================================== -->
+  <!-- MODULAR SCRIPTS                                -->
+  <!-- ============================================== -->
+  <script src="js/modal.js"></script>
+  <script src="js/gallery.js"></script>
+  <script src="js/upload.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
