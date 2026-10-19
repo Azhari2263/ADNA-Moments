@@ -98,6 +98,10 @@
           Koleksi Galeri
         </button>
 
+        <button onclick="App.switchPage('albums')" id="nav-btn-albums" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5">
+          Album Kenangan
+        </button>
+
         <button onclick="App.switchPage('upload')" id="nav-btn-upload" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 relative">
           Unggah Kenangan
           <span id="desk-queue-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center scale-0 opacity-0 transition-all duration-300 shadow-md">
@@ -331,6 +335,152 @@
     </section>
 
     <!-- ============================================== -->
+    <!-- ALBUMS VIEW                                    -->
+    <!-- ============================================== -->
+    <section id="albums-page" class="page-section pb-12">
+      
+      <!-- Hero Banner -->
+      <div class="relative w-full h-44 sm:h-56 rounded-3xl overflow-hidden mb-6 sm:mb-8 glass-panel flex items-center justify-center text-center px-4 sm:px-6 shadow-2xl">
+        <div class="absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-950/60 to-[#09060a]/95 z-0"></div>
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-950/60 border border-brand-500/25 text-brand-300 text-xs font-semibold mb-3">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span>Buku Kisah Bersama</span>
+          </div>
+          <h1 class="font-serif text-3xl sm:text-5xl font-bold mb-2 text-white drop-shadow-md">
+            Album Kenangan
+          </h1>
+          <p class="text-xs sm:text-sm text-rose-200/80 font-light max-w-xl mx-auto leading-relaxed">
+            Kumpulan babak cerita, perjalanan istimewa, dan momen tak terlupakan yang kita rangkai berdua.
+          </p>
+        </div>
+      </div>
+
+      <!-- Action & Search Toolbar -->
+      <div class="glass-panel p-4 rounded-2xl sm:rounded-3xl mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+        <div class="relative w-full sm:w-80">
+          <input 
+            type="text" 
+            id="albumSearchInput" 
+            placeholder="Cari album kenangan..." 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-4 placeholder-slate-400 transition"
+          />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button onclick="AlbumsManager.fetchAlbums()" class="p-2.5 text-slate-300 hover:text-white glass-input rounded-xl transition" title="Segarkan Album">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+          <button onclick="AlbumsManager.openCreateModal()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-lg shadow-brand-600/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>Buat Album Baru</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="albums-loading" class="hidden py-16 text-center">
+        <div class="inline-flex items-center gap-3 text-sm text-brand-300 font-medium animate-pulse">
+          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+          <span>Memuat album kenangan dari Google Drive...</span>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="albums-empty" class="hidden py-16 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-brand-900/30 rounded-full flex items-center justify-center mb-4 border border-brand-500/20">
+          <svg class="w-8 h-8 sm:w-10 sm:h-10 text-brand-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <h3 class="text-lg sm:text-xl font-serif font-bold text-white mb-1.5">Belum Ada Album Kenangan</h3>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-sm mb-6">Mulai kelompokkan momen liburan, kencan, atau perayaan spesial ke dalam album tersendiri.</p>
+        <button onclick="AlbumsManager.openCreateModal()" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-full text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-brand-600/30">
+          Buat Album Pertama Kita
+        </button>
+      </div>
+
+      <!-- Albums Grid -->
+      <div id="albums-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Rendered dynamically -->
+      </div>
+
+    </section>
+
+    <!-- ============================================== -->
+    <!-- ALBUM DETAIL VIEW                              -->
+    <!-- ============================================== -->
+    <section id="album-detail-page" class="page-section pb-12">
+      
+      <!-- Back Navigation & Actions -->
+      <div class="flex items-center justify-between mb-4 sm:mb-6">
+        <button onclick="App.switchPage('albums')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/40 text-xs sm:text-sm font-medium transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <span>Semua Album</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition" title="Edit Judul & Catatan Album">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            <span>Edit Album</span>
+          </button>
+          <button onclick="App.switchPage('upload')" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>+ Tambah Kenangan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Album Header Banner -->
+      <div class="relative w-full rounded-3xl overflow-hidden mb-8 glass-panel p-6 sm:p-10 shadow-2xl border border-brand-500/25">
+        <div id="detailAlbumBackdrop" class="absolute inset-0 bg-cover bg-center filter blur-xl scale-110 opacity-30 z-0"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#09060a] via-[#09060a]/80 to-transparent z-0"></div>
+
+        <div class="relative z-10 max-w-3xl">
+          <div class="flex flex-wrap items-center gap-2 text-[11px] text-rose-300 font-semibold mb-3">
+            <span id="detailAlbumCount" class="px-3 py-1 rounded-full bg-brand-950/80 border border-brand-500/30">0 Momen Tersimpan</span>
+            <span id="detailAlbumDate" class="text-slate-400"></span>
+          </div>
+
+          <h1 id="detailAlbumTitle" class="font-serif text-2xl sm:text-4xl font-bold text-white mb-3 drop-shadow-md">
+            Nama Album
+          </h1>
+
+          <div class="bg-black/30 backdrop-blur-sm p-4 sm:p-5 rounded-2xl border border-white/5">
+            <p id="detailAlbumDesc" class="font-serif italic text-xs sm:text-sm text-rose-100/90 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="detailAlbumLoading" class="hidden py-16 text-center">
+        <div class="inline-flex items-center gap-3 text-sm text-brand-300 font-medium animate-pulse">
+          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+          <span>Memuat kenangan di album ini...</span>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="detailAlbumEmpty" class="hidden py-16 flex flex-col items-center justify-center text-center">
+        <div class="w-14 h-14 bg-brand-900/30 rounded-full flex items-center justify-center mb-3 border border-brand-500/20">
+          <svg class="w-7 h-7 text-brand-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="text-base sm:text-lg font-serif font-bold text-white mb-1">Album Masih Kosong</h3>
+        <p class="text-slate-400 text-xs max-w-sm mb-5">Belum ada foto atau video yang dimasukkan ke dalam album ini.</p>
+        <button onclick="App.switchPage('upload')" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-full text-xs font-semibold shadow-lg shadow-brand-600/30 transition">
+          Unggah Kenangan ke Album Ini
+        </button>
+      </div>
+
+      <!-- Album Media Grid -->
+      <div id="detailAlbumGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+        <!-- Rendered dynamically -->
+      </div>
+
+    </section>
+
+    <!-- ============================================== -->
     <!-- UPLOAD VIEW                                    -->
     <!-- ============================================== -->
     <section id="upload-page" class="page-section pb-12">
@@ -358,20 +508,37 @@
             <div>
               <label for="uploadMonth" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Bulan Momen</label>
               <select id="uploadMonth" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
-                <option value="01">01 - Januari</option>
-                <option value="02">02 - Februari</option>
-                <option value="03">03 - Maret</option>
-                <option value="04">04 - April</option>
-                <option value="05">05 - Mei</option>
-                <option value="06">06 - Juni</option>
-                <option value="07">07 - Juli</option>
-                <option value="08">08 - Agustus</option>
-                <option value="09">09 - September</option>
-                <option value="10">10 - Oktober</option>
-                <option value="11">11 - November</option>
-                <option value="12">12 - Desember</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
               </select>
             </div>
+          </div>
+
+          <!-- Album Target Selector -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label for="uploadAlbum" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider">Simpan ke Album (Opsional)</label>
+              <button type="button" onclick="AlbumsManager.openCreateModal()" class="text-[11px] text-brand-400 hover:text-white underline">+ Buat Album Baru</button>
+            </div>
+            <select id="uploadAlbum" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
+              <option value="">Tanpa Album (Galeri Umum)</option>
+            </select>
+          </div>
+
+          <!-- Love Notes Input -->
+          <div class="mb-5">
+            <label for="uploadNotes" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Catatan Kenangan (Opsional)</label>
+            <textarea id="uploadNotes" rows="2" placeholder="Tuliskan cerita manis atau perasaan di balik momen ini..." class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none resize-none placeholder-slate-400"></textarea>
           </div>
 
           <!-- Drag & Drop Zone -->
@@ -423,6 +590,11 @@
         <span class="text-[10px] font-semibold">Galeri</span>
       </button>
 
+      <button onclick="App.switchPage('albums')" id="mob-nav-albums" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span class="text-[10px] font-semibold">Album</span>
+      </button>
+
       <button onclick="App.switchPage('upload')" id="mob-nav-upload" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition relative">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         <span class="text-[10px] font-semibold">Unggah</span>
@@ -447,6 +619,11 @@
     </div>
 
     <div class="absolute top-3 right-3 sm:top-5 sm:right-6 flex items-center gap-2 z-50">
+      <!-- Edit Button -->
+      <button onclick="ModalManager.openEditModal()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Edit Nama & Catatan Kenangan">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </button>
+
       <!-- Open in Google Drive -->
       <a id="modalDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Buka di Google Drive">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
@@ -479,9 +656,15 @@
     
     <!-- Bottom Caption Bar -->
     <div class="absolute bottom-3 left-0 w-full text-center px-4 pointer-events-none">
-      <div class="inline-block bg-black/60 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/10 max-w-lg">
-        <h4 id="modalTitle" class="text-white font-serif text-sm sm:text-base font-semibold truncate drop-shadow-md"></h4>
-        <p id="modalDate" class="text-rose-200/80 text-[11px] sm:text-xs mt-0.5"></p>
+      <div class="inline-block bg-black/75 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 max-w-xl pointer-events-auto">
+        <div class="flex items-center justify-center gap-2 mb-1">
+          <span id="modalAlbumBadge" class="hidden px-2.5 py-0.5 rounded-full bg-brand-950 border border-brand-500/40 text-[10px] text-brand-300 font-semibold truncate max-w-[150px]"></span>
+          <h4 id="modalTitle" class="text-white font-serif text-sm sm:text-base font-semibold truncate drop-shadow-md"></h4>
+        </div>
+        <div id="modalNotesContainer" class="hidden my-1 px-1">
+          <p id="modalNotes" class="font-serif italic text-xs sm:text-sm text-rose-100/95 leading-relaxed drop-shadow"></p>
+        </div>
+        <p id="modalDate" class="text-rose-200/70 text-[10px] sm:text-[11px] mt-0.5"></p>
       </div>
     </div>
 
@@ -536,6 +719,115 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- EDIT MEDIA MODAL                               -->
+  <!-- ============================================== -->
+  <div id="editMediaModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          </div>
+          <h3 class="text-base sm:text-lg font-serif font-bold text-white">Edit Kenangan Ini</h3>
+        </div>
+        <button onclick="ModalManager.closeEditModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label for="editMediaNameInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Nama / Judul Kenangan</label>
+          <input 
+            type="text" 
+            id="editMediaNameInput" 
+            placeholder="Contoh: Senyum Manismu di Malioboro" 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="editMediaNotesInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Catatan Kenangan (Love Note)</label>
+          <textarea 
+            id="editMediaNotesInput" 
+            rows="3" 
+            placeholder="Tuliskan cerita manis atau apa yang membuat momen ini begitu spesial..." 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none resize-none"
+          ></textarea>
+        </div>
+
+        <div>
+          <label for="editMediaAlbumSelect" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Pilih Album Kenangan</label>
+          <select id="editMediaAlbumSelect" class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none cursor-pointer">
+            <option value="">Tidak Masuk Album</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+        <button onclick="ModalManager.closeEditModal()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+          Batal
+        </button>
+        <button id="editMediaSaveBtn" onclick="ModalManager.saveEdit()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+          Simpan Perubahan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- CREATE / EDIT ALBUM MODAL                      -->
+  <!-- ============================================== -->
+  <div id="albumFormModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </div>
+          <h3 id="albumModalHeading" class="text-base sm:text-lg font-serif font-bold text-white">Buat Album Kenangan Baru</h3>
+        </div>
+        <button onclick="AlbumsManager.closeModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="albumIsEditMode" value="create" />
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label for="albumTitleInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Nama Album Kenangan</label>
+          <input 
+            type="text" 
+            id="albumTitleInput" 
+            placeholder="Contoh: Liburan ke Bali 2026, Kencan Pertama, Photobox Kita" 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none"
+          />
+        </div>
+
+        <div>
+          <label for="albumDescInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Catatan Pembuka / Cerita Album</label>
+          <textarea 
+            id="albumDescInput" 
+            rows="3" 
+            placeholder="Tuliskan kata pengantar atau cerita ringkas tentang perjalanan di album ini..." 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+        <button onclick="AlbumsManager.closeModal()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+          Batal
+        </button>
+        <button id="saveAlbumBtn" onclick="AlbumsManager.saveAlbum()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+          Simpan Album
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- TOAST NOTIFICATION CONTAINER                   -->
   <!-- ============================================== -->
   <div id="toastContainer" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5 pointer-events-none w-[92%] sm:w-auto max-w-sm"></div>
@@ -545,6 +837,7 @@
   <!-- ============================================== -->
   <script src="js/modal.js"></script>
   <script src="js/gallery.js"></script>
+  <script src="js/albums.js"></script>
   <script src="js/upload.js"></script>
   <script src="js/app.js"></script>
 

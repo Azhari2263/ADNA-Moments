@@ -1,6 +1,7 @@
 /**
- * ADNA Moments — Upload Manager
+ * ADNA Moments — Upload Manager v2.0
  * Handles multi-file selection, client-side thumbnail previews,
+ * album targeting, love notes assignment, canvas image compression,
  * queue management, base64 encoding, and uploading to Google Apps Script.
  */
 
@@ -72,6 +73,8 @@ const UploadManager = {
 
   handleFiles(fileList) {
     const maxSizeBytes = 25 * 1024 * 1024; // 25 MB limit for GAS Base64 stability
+    const selectedAlbum = document.getElementById('uploadAlbum')?.value || '';
+    const initialNotes = document.getElementById('uploadNotes')?.value?.trim() || '';
 
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
@@ -98,6 +101,8 @@ const UploadManager = {
         type: file.type,
         size: file.size,
         previewUrl,
+        album: selectedAlbum,
+        notes: initialNotes,
         status: 'pending', // pending | uploading | success | error
         errorMsg: ''
       };
@@ -151,6 +156,14 @@ const UploadManager = {
       if (hasSuccess && !hasPendingOrUploading) {
         App.showToast('Semua momen berhasil diunggah ke Google Drive!', 'success');
         GalleryManager.fetchGallery();
+        if (window.AlbumsManager) {
+          AlbumsManager.fetchAlbums();
+        }
+
+        // Reset input catatan
+        const notesInput = document.getElementById('uploadNotes');
+        if (notesInput) notesInput.value = '';
+
         setTimeout(() => {
           App.switchPage('gallery');
         }, 1200);
@@ -178,13 +191,18 @@ const UploadManager = {
 
       const year = document.getElementById('uploadYear')?.value || String(new Date().getFullYear());
       const month = document.getElementById('uploadMonth')?.value || String(new Date().getMonth() + 1).padStart(2, '0');
+      const album = nextItem.album || document.getElementById('uploadAlbum')?.value || '';
+      const notes = nextItem.notes || document.getElementById('uploadNotes')?.value?.trim() || '';
 
       const payload = {
+        action: 'upload',
         fileName: nextItem.name,
         mimeType: nextItem.type,
         base64: base64Data,
         year: year,
-        month: month
+        month: month,
+        album: album,
+        notes: notes
       };
 
       const response = await fetch(apiUrl, {
@@ -216,7 +234,18 @@ const UploadManager = {
     }
   },
 
-  fileToBase64(file) {
+  /**
+   * Konversi File ke Base64 dengan kompresi Canvas otomatis untuk gambar
+   */
+  async fileToBase64(file) {
+    if (file.type.startsWith('image/')) {
+      try {
+        return await this.compressImageToBase64(file);
+      } catch (e) {
+        console.warn('Canvas compression error, fallback ke original:', e);
+      }
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -229,109 +258,128 @@ const UploadManager = {
     });
   },
 
+  compressImageToBase64(file, maxWidth = 2048, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(mime, quality);
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  },
+
   renderQueue() {
-    const container = document.getElementById('uploadQueue');
+    const queueContainer = document.getElementById('uploadQueue');
     const clearBtn = document.getElementById('clearCompletedBtn');
-    if (!container) return;
+    if (!queueContainer) return;
 
-    container.innerHTML = '';
+    queueContainer.innerHTML = '';
 
-    const hasSuccess = this.queue.some(i => i.status === 'success');
+    const hasCompleted = this.queue.some(i => i.status === 'success');
     if (clearBtn) {
-      clearBtn.style.display = hasSuccess ? 'inline-flex' : 'none';
+      if (hasCompleted) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
     }
 
     if (this.queue.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-6 text-slate-500 text-xs sm:text-sm">
-          Antrean unggahan kosong.
+      queueContainer.innerHTML = `
+        <div class="p-6 text-center text-slate-500 text-xs border border-white/5 rounded-2xl bg-black/20">
+          Belum ada foto atau video dalam antrean unggah.
         </div>
       `;
       return;
     }
 
-    this.queue.slice().reverse().forEach(item => {
-      const isVideo = item.type.startsWith('video/');
-      const card = document.createElement('div');
-      
-      let borderStyle = 'border-white/5 bg-black/35';
-      if (item.status === 'uploading') borderStyle = 'border-brand-500/50 bg-brand-950/20';
-      if (item.status === 'success') borderStyle = 'border-emerald-500/30 bg-emerald-950/10';
-      if (item.status === 'error') borderStyle = 'border-red-500/30 bg-red-950/15';
+    this.queue.forEach(item => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'flex items-center gap-3 p-3 rounded-2xl bg-black/40 border border-white/5 transition';
 
       let statusBadge = '';
       if (item.status === 'pending') {
-        statusBadge = `
-          <span class="inline-flex items-center gap-1.5 text-xs text-amber-300">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Menunggu
-          </span>
-        `;
+        statusBadge = '<span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">Menunggu</span>';
       } else if (item.status === 'uploading') {
-        statusBadge = `
-          <span class="inline-flex items-center gap-1.5 text-xs text-brand-300">
-            <span class="w-3.5 h-3.5 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></span> Mengunggah...
-          </span>
-        `;
+        statusBadge = '<span class="text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Mengunggah</span>';
       } else if (item.status === 'success') {
-        statusBadge = `
-          <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400">
-            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Selesai
-          </span>
-        `;
-      } else {
-        statusBadge = `
-          <span class="inline-flex items-center gap-1.5 text-xs text-red-400" title="${item.errorMsg}">
-            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> Gagal
-          </span>
-        `;
+        statusBadge = '<span class="text-[10px] text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Selesai</span>';
+      } else if (item.status === 'error') {
+        statusBadge = `<span class="text-[10px] text-red-300 bg-red-500/20 px-2 py-0.5 rounded-full" title="${item.errorMsg}">Gagal</span>`;
       }
 
-      card.className = `flex items-center gap-3 p-3 rounded-2xl border ${borderStyle} transition-all`;
+      const isVideo = item.type.startsWith('video/');
 
-      card.innerHTML = `
-        <div class="relative w-12 h-12 rounded-xl overflow-hidden bg-black flex-shrink-0 border border-white/10">
+      itemEl.innerHTML = `
+        <div class="w-12 h-12 rounded-xl overflow-hidden bg-black/80 flex-shrink-0 relative border border-white/10">
           ${isVideo ? `
-            <video src="${item.previewUrl}" class="w-full h-full object-cover"></video>
-            <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <div class="w-full h-full flex items-center justify-center bg-brand-950/60">
+              <svg class="w-5 h-5 text-brand-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </div>
           ` : `
-            <img src="${item.previewUrl}" class="w-full h-full object-cover" alt="preview" />
+            <img src="${item.previewUrl}" alt="${item.name}" class="w-full h-full object-cover" />
           `}
         </div>
 
-        <div class="flex-1 min-w-0">
-          <p class="text-xs sm:text-sm font-semibold text-white truncate">${item.name}</p>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-[11px] text-slate-400">${this.formatFileSize(item.size)}</span>
-            <span class="text-slate-600">•</span>
+        <div class="flex-grow min-w-0">
+          <div class="flex items-center justify-between gap-2 mb-0.5">
+            <h5 class="text-xs font-medium text-white truncate">${item.name}</h5>
             ${statusBadge}
+          </div>
+          <div class="flex items-center gap-2 text-[10px] text-slate-400">
+            <span>${this.formatFileSize(item.size)}</span>
+            ${item.album ? `<span>• Album: <b class="text-brand-300">${item.album}</b></span>` : ''}
           </div>
         </div>
 
         ${item.status !== 'uploading' ? `
-          <button onclick="UploadManager.removeItem('${item.id}')" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-white/5 transition" title="Hapus dari antrean">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          <button onclick="UploadManager.removeItem('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition" title="Hapus dari antrean">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         ` : ''}
       `;
 
-      container.appendChild(card);
+      queueContainer.appendChild(itemEl);
     });
   },
 
   updateBadge() {
-    const badge = document.getElementById('mob-queue-badge');
-    const deskBadge = document.getElementById('desk-queue-badge');
     const pendingCount = this.queue.filter(i => i.status === 'pending' || i.status === 'uploading').length;
 
-    [badge, deskBadge].forEach(el => {
-      if (!el) return;
+    const deskBadge = document.getElementById('desk-queue-badge');
+    const mobBadge = document.getElementById('mob-queue-badge');
+
+    [deskBadge, mobBadge].forEach(badge => {
+      if (!badge) return;
       if (pendingCount > 0) {
-        el.textContent = pendingCount;
-        el.classList.remove('opacity-0', 'scale-0');
+        badge.textContent = pendingCount;
+        badge.classList.remove('scale-0', 'opacity-0');
+        badge.classList.add('scale-100', 'opacity-100');
       } else {
-        el.classList.add('opacity-0', 'scale-0');
+        badge.classList.remove('scale-100', 'opacity-100');
+        badge.classList.add('scale-0', 'opacity-0');
       }
     });
   },

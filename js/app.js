@@ -18,6 +18,7 @@ const App = {
     if (window.ModalManager) ModalManager.init();
     if (window.UploadManager) UploadManager.init();
     if (window.GalleryManager) GalleryManager.init();
+    if (window.AlbumsManager) AlbumsManager.init();
   },
 
   /* ----------------------------------------------------
@@ -74,6 +75,7 @@ const App = {
     this.closeSettings();
     this.showToast('Pengaturan API berhasil disimpan!', 'success');
     GalleryManager.fetchGallery();
+    if (window.AlbumsManager) AlbumsManager.fetchAlbums();
   },
 
   resetSettings() {
@@ -83,6 +85,7 @@ const App = {
     this.closeSettings();
     this.showToast('URL Google Apps Script direset ke bawaan.', 'info');
     GalleryManager.fetchGallery();
+    if (window.AlbumsManager) AlbumsManager.fetchAlbums();
   },
 
   /* ----------------------------------------------------
@@ -91,14 +94,14 @@ const App = {
   initRouter() {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'upload' || hash === 'gallery') {
+      if (['upload', 'gallery', 'albums', 'album-detail'].includes(hash)) {
         this.switchPage(hash, false);
       }
     });
 
     const initialHash = window.location.hash.replace('#', '');
-    if (initialHash === 'upload') {
-      this.switchPage('upload', false);
+    if (['upload', 'albums', 'album-detail'].includes(initialHash)) {
+      this.switchPage(initialHash, false);
     } else {
       this.switchPage('gallery', false);
     }
@@ -110,57 +113,70 @@ const App = {
     }
 
     const galleryPage = document.getElementById('gallery-page');
+    const albumsPage = document.getElementById('albums-page');
+    const albumDetailPage = document.getElementById('album-detail-page');
     const uploadPage = document.getElementById('upload-page');
 
-    if (!galleryPage || !uploadPage) return;
+    const pages = {
+      'gallery': galleryPage,
+      'albums': albumsPage,
+      'album-detail': albumDetailPage,
+      'upload': uploadPage
+    };
 
-    if (page === 'gallery') {
-      galleryPage.classList.add('active');
-      uploadPage.classList.remove('active');
-    } else {
-      uploadPage.classList.add('active');
-      galleryPage.classList.remove('active');
-    }
+    Object.keys(pages).forEach(key => {
+      const el = pages[key];
+      if (!el) return;
+      if (key === page) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
 
     // Desktop Nav Styling
     const dGallery = document.getElementById('nav-btn-gallery');
+    const dAlbums = document.getElementById('nav-btn-albums');
     const dUpload = document.getElementById('nav-btn-upload');
     const activeDesk = ['text-white', 'bg-brand-600/25', 'border-brand-500/30', 'shadow-[0_0_15px_rgba(225,29,72,0.3)]'];
     const inactiveDesk = ['text-slate-300', 'border-transparent', 'hover:text-white', 'hover:bg-white/5'];
 
-    if (dGallery && dUpload) {
-      if (page === 'gallery') {
-        dGallery.classList.remove(...inactiveDesk);
-        dGallery.classList.add(...activeDesk);
-        dUpload.classList.remove(...activeDesk);
-        dUpload.classList.add(...inactiveDesk);
+    const setDeskNav = (btn, isActive) => {
+      if (!btn) return;
+      if (isActive) {
+        btn.classList.remove(...inactiveDesk);
+        btn.classList.add(...activeDesk);
       } else {
-        dUpload.classList.remove(...inactiveDesk);
-        dUpload.classList.add(...activeDesk);
-        dGallery.classList.remove(...activeDesk);
-        dGallery.classList.add(...inactiveDesk);
+        btn.classList.remove(...activeDesk);
+        btn.classList.add(...inactiveDesk);
       }
-    }
+    };
+
+    setDeskNav(dGallery, page === 'gallery');
+    setDeskNav(dAlbums, page === 'albums' || page === 'album-detail');
+    setDeskNav(dUpload, page === 'upload');
 
     // Mobile Bottom Nav Styling
     const mGallery = document.getElementById('mob-nav-gallery');
+    const mAlbums = document.getElementById('mob-nav-albums');
     const mUpload = document.getElementById('mob-nav-upload');
     const activeMob = ['text-brand-400', 'bg-brand-900/40'];
     const inactiveMob = ['text-slate-400'];
 
-    if (mGallery && mUpload) {
-      if (page === 'gallery') {
-        mGallery.classList.remove(...inactiveMob);
-        mGallery.classList.add(...activeMob);
-        mUpload.classList.remove(...activeMob);
-        mUpload.classList.add(...inactiveMob);
+    const setMobNav = (btn, isActive) => {
+      if (!btn) return;
+      if (isActive) {
+        btn.classList.remove(...inactiveMob);
+        btn.classList.add(...activeMob);
       } else {
-        mUpload.classList.remove(...inactiveMob);
-        mUpload.classList.add(...activeMob);
-        mGallery.classList.remove(...activeMob);
-        mGallery.classList.add(...inactiveMob);
+        btn.classList.remove(...activeMob);
+        btn.classList.add(...inactiveMob);
       }
-    }
+    };
+
+    setMobNav(mGallery, page === 'gallery');
+    setMobNav(mAlbums, page === 'albums' || page === 'album-detail');
+    setMobNav(mUpload, page === 'upload');
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },

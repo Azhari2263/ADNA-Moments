@@ -1,13 +1,16 @@
 /**
  * ============================================================================
- * ADNA MOMENTS - GOOGLE APPS SCRIPT BACKEND (REST API)
+ * ADNA MOMENTS - GOOGLE APPS SCRIPT BACKEND (REST API v2.0)
  * ============================================================================
  * Arsitektur: Serverless REST API dengan Google Drive sebagai Cloud Storage
- * Struktur Folder: ADNA Moments / [Tahun] / [Bulan] / [Foto | Video]
+ * Struktur Folder:
+ *   - ADNA Moments / [Tahun] / [Bulan] / [Foto | Video]
+ *   - ADNA Moments / Albums / [Nama Album] / [Foto | Video]
  * ============================================================================
  */
 
 const ROOT_FOLDER_NAME = "ADNA Moments";
+const ALBUMS_FOLDER_NAME = "Albums";
 
 const MONTH_NAMES = {
   "01": "01 - Januari",
@@ -25,20 +28,26 @@ const MONTH_NAMES = {
 };
 
 /**
- * Menangani HTTP GET Request dari Frontend (Vercel / GitHub Pages / PWA)
- * Query Parameters yang didukung:
- * - year: String (opsional, contoh: "2026". Jika kosong / "all", mengambil semua tahun)
- * - month: String (opsional, contoh: "10" atau "10 - Oktober". Jika kosong / "all", mengambil semua bulan)
+ * Menangani HTTP GET Request dari Frontend
+ * Parameter yang didukung:
+ * - action: "albums" (ambil daftar semua album)
+ * - album: String (ambil isi foto/video dalam album tertentu berdasarkan nama)
+ * - albumId: String (ambil isi album berdasarkan folder ID)
+ * - year: String (opsional, contoh: "2026")
+ * - month: String (opsional, contoh: "10")
  * - type: String ("all" | "photo" | "video")
  */
 function doGet(e) {
   try {
     const params = e && e.parameter ? e.parameter : {};
+    const reqAction = (params.action || "").trim().toLowerCase();
+    const reqAlbum = (params.album || "").trim();
+    const reqAlbumId = (params.albumId || "").trim();
     const reqYear = (params.year || "").trim();
     const reqMonth = (params.month || "").trim();
     const filterType = (params.type || "all").toLowerCase();
 
-    // 1. Cek folder induk ADNA Moments
+    // 1. Dapatkan folder induk ADNA Moments
     const rootFolder = getFolderIfExists(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
     if (!rootFolder) {
       return createJsonResponse({ 
@@ -49,30 +58,143 @@ function doGet(e) {
       });
     }
 
-    let mediaList = [];
+    const albumsRoot = getFolderIfExists(rootFolder, ALBUMS_FOLDER_NAME);
 
-    // 2. Tentukan folder tahun yang akan dipindai
+    // 2. KASUS A: Mengambil Daftar Semua Album (?action=albums)
+    if (reqAction === "albums") {
+      if (!albumsRoot) {
+        return createJsonResponse({ status: "success", data: [], count: 0 });
+      }
+
+      const albumsList = [];
+      const albumFolders = albumsRoot.getFolders();
+
+      while (albumFolders.hasNext()) {
+        const af = albumFolders.next();
+        const afName = af.getName();
+        const afDesc = af.getDescription() || "";
+        const afDate = af.getDateCreated().toISOString();
+
+        // Hitung file dan tentukan cover album
+        let pCount = 0;
+        let vCount = 0;
+        let coverUrl = "";
+
+        const filesIter = af.getFiles();
+        while (filesIter.hasNext()) {
+          const f = filesIter.next();
+          if (!f.isTrashed()) {
+            const mime = f.getMimeType();
+            const isVid = mime.indexOf("video/") === 0;
+            if (isVid) {
+              vCount++;
+            } else {
+              pCount++;
+            }
+
+            // Gunakan thumbnail foto pertama sebagai cover album
+            if (!coverUrl && !isVid) {
+              coverUrl = "https://drive.google.com/thumbnail?id=" + f.getId() + "&sz=w1000";
+            }
+          }
+        }
+
+        albumsList.push({
+          id: af.getId(),
+          title: afName,
+          description: afDesc,
+          createdAt: afDate,
+          photoCount: pCount,
+          videoCount: vCount,
+          totalCount: pCount + vCount,
+          coverUrl: coverUrl
+        });
+      }
+
+      // Urutkan album terbaru dulu
+      albumsList.sort(function(a, b) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      return createJsonResponse({
+        status: "success",
+        count: albumsList.length,
+        data: albumsList
+      });
+    }
+
+    // 3. KASUS B: Mengambil Media di dalam Satu Album Tertentu (?album=Nama atau ?albumId=ID)
+    if (reqAlbum || reqAlbumId) {
+      let targetAlbumFolder = null;
+      if (reqAlbumId) {
+        targetAlbumFolder = DriveApp.getFolderById(reqAlbumId);
+      } else if (albumsRoot) {
+        targetAlbumFolder = getFolderIfExists(albumsRoot, reqAlbum);
+      }
+
+      if (!targetAlbumFolder) {
+        return createJsonResponse({
+          status: "error",
+          message: "Album '" + (reqAlbum || reqAlbumId) + "' tidak ditemukan."
+        });
+      }
+
+      const albumFiles = [];
+      const afIter = targetAlbumFolder.getFiles();
+      while (afIter.hasNext()) {
+        const file = afIter.next();
+        if (!file.isTrashed()) {
+          const item = formatFileObject(file, null, "", "", targetAlbumFolder.getName());
+          if (filterType === "all" || item.type === filterType) {
+            albumFiles.push(item);
+          }
+        }
+      }
+
+      albumFiles.sort(function(a, b) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      return createJsonResponse({
+        status: "success",
+        album: {
+          id: targetAlbumFolder.getId(),
+          title: targetAlbumFolder.getName(),
+          description: targetAlbumFolder.getDescription() || "",
+          createdAt: targetAlbumFolder.getDateCreated().toISOString()
+        },
+        count: albumFiles.length,
+        data: albumFiles
+      });
+    }
+
+    // 4. KASUS C: Mengambil Galeri Garis Waktu (Berdasarkan Tahun & Bulan)
+    let mediaList = [];
     let yearFolders = [];
+
     if (reqYear && reqYear !== "all") {
       const yf = getFolderIfExists(rootFolder, reqYear);
-      if (yf) yearFolders.push(yf);
+      if (yf && yf.getName() !== ALBUMS_FOLDER_NAME) {
+        yearFolders.push(yf);
+      }
     } else {
       const subYears = rootFolder.getFolders();
       while (subYears.hasNext()) {
-        yearFolders.push(subYears.next());
+        const f = subYears.next();
+        // Lewati folder "Albums" agar tidak dianggap sebagai folder tahun
+        if (f.getName() !== ALBUMS_FOLDER_NAME) {
+          yearFolders.push(f);
+        }
       }
     }
 
-    // 3. Pindai setiap folder tahun
     for (let i = 0; i < yearFolders.length; i++) {
       const yearFolder = yearFolders[i];
       const yearName = yearFolder.getName();
 
-      // Tentukan folder bulan
       let monthFolders = [];
       if (reqMonth && reqMonth !== "all") {
         const targetMonthName = MONTH_NAMES[reqMonth] || reqMonth;
-        // Cari folder bulan yang cocok persis atau berawalan angka bulan
         const mfIter = yearFolder.getFolders();
         while (mfIter.hasNext()) {
           const mf = mfIter.next();
@@ -87,12 +209,10 @@ function doGet(e) {
         }
       }
 
-      // Pindai subfolder Foto dan Video di setiap bulan
       for (let j = 0; j < monthFolders.length; j++) {
         const monthFolder = monthFolders[j];
         const monthName = monthFolder.getName();
 
-        // Subfolder Foto
         if (filterType === "all" || filterType === "photo" || filterType === "foto") {
           const photoFolder = getFolderIfExists(monthFolder, "Foto");
           if (photoFolder) {
@@ -100,7 +220,6 @@ function doGet(e) {
           }
         }
 
-        // Subfolder Video
         if (filterType === "all" || filterType === "video") {
           const videoFolder = getFolderIfExists(monthFolder, "Video");
           if (videoFolder) {
@@ -110,7 +229,6 @@ function doGet(e) {
       }
     }
 
-    // 4. Urutkan berdasarkan waktu unggah terbaru (descending)
     mediaList.sort(function(a, b) {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
@@ -131,8 +249,12 @@ function doGet(e) {
 }
 
 /**
- * Menangani HTTP POST Request untuk Upload File (Base64)
- * Menghindari error CORS OPTIONS preflight dengan payload JSON (Content-Type: text/plain).
+ * Menangani HTTP POST Request
+ * Aksi yang didukung:
+ * 1. action: "upload" (Upload Foto / Video baru beserta catatan & album opsional)
+ * 2. action: "create_album" (Buat album baru dengan judul & deskripsi pembuka)
+ * 3. action: "update_media" (Edit nama file, catatan cinta, atau asosiasi album)
+ * 4. action: "update_album" (Edit judul & catatan pembuka album)
  */
 function doPost(e) {
   try {
@@ -141,50 +263,174 @@ function doPost(e) {
     }
 
     const payload = JSON.parse(e.postData.contents);
-    const fileName = payload.fileName || ("ADNA_" + new Date().getTime());
-    const mimeType = payload.mimeType || "application/octet-stream";
-    const base64Data = payload.base64;
-    const year = String(payload.year || new Date().getFullYear());
-    const rawMonth = String(payload.month || String(new Date().getMonth() + 1).padStart(2, '0'));
-    const monthFolderName = MONTH_NAMES[rawMonth] || rawMonth;
+    const action = payload.action || (payload.base64 ? "upload" : "");
 
-    if (!base64Data) {
-      throw new Error("Data Base64 tidak ditemukan dalam request.");
-    }
-
-    // 1. Tentukan subfolder ("Foto" atau "Video") berdasarkan MIME Type
-    let targetSubFolderName = "";
-    let mediaCategory = "";
-
-    if (mimeType.indexOf("image/") === 0) {
-      targetSubFolderName = "Foto";
-      mediaCategory = "photo";
-    } else if (mimeType.indexOf("video/") === 0) {
-      targetSubFolderName = "Video";
-      mediaCategory = "video";
-    } else {
-      throw new Error("Tipe file tidak didukung (" + mimeType + "). Harap unggah Gambar atau Video.");
-    }
-
-    // 2. Bangun struktur hierarki folder otomatis jika belum ada
     const rootFolder = getOrCreateFolder(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
-    const yearFolder = getOrCreateFolder(rootFolder, year);
-    const monthFolder = getOrCreateFolder(yearFolder, monthFolderName);
-    const targetFolder = getOrCreateFolder(monthFolder, targetSubFolderName);
+    const albumsRoot = getOrCreateFolder(rootFolder, ALBUMS_FOLDER_NAME);
 
-    // 3. Konversi Base64 ke Blob & simpan ke Google Drive
-    const decodedBytes = Utilities.base64Decode(base64Data);
-    const blob = Utilities.newBlob(decodedBytes, mimeType, fileName);
-    const file = targetFolder.createFile(blob);
+    // ========================================================
+    // AKSI 1: BUAT ALBUM BARU
+    // ========================================================
+    if (action === "create_album") {
+      const albumTitle = (payload.title || "").trim();
+      const albumDesc = (payload.description || "").trim();
 
-    // 4. Setel izin akses publik agar file dapat diakses di aplikasi web
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      if (!albumTitle) {
+        throw new Error("Nama album tidak boleh kosong.");
+      }
 
-    return createJsonResponse({
-      status: "success",
-      message: "File berhasil disimpan ke " + targetSubFolderName,
-      data: formatFileObject(file, mediaCategory, year, monthFolderName)
-    });
+      const albumFolder = getOrCreateFolder(albumsRoot, albumTitle);
+      if (albumDesc) {
+        albumFolder.setDescription(albumDesc);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Album '" + albumTitle + "' berhasil dibuat.",
+        data: {
+          id: albumFolder.getId(),
+          title: albumFolder.getName(),
+          description: albumFolder.getDescription() || "",
+          createdAt: albumFolder.getDateCreated().toISOString(),
+          photoCount: 0,
+          videoCount: 0,
+          totalCount: 0,
+          coverUrl: ""
+        }
+      });
+    }
+
+    // ========================================================
+    // AKSI 2: EDIT NAMA & CATATAN FOTO / MEDIA
+    // ========================================================
+    if (action === "update_media") {
+      const fileId = payload.fileId;
+      if (!fileId) throw new Error("ID File tidak disertakan.");
+
+      const file = DriveApp.getFileById(fileId);
+      if (!file) throw new Error("File tidak ditemukan di Google Drive.");
+
+      const newName = (payload.name || "").trim();
+      const newNotes = payload.notes !== undefined ? String(payload.notes).trim() : null;
+      const targetAlbum = (payload.album || "").trim();
+
+      if (newName) {
+        file.setName(newName);
+      }
+
+      if (newNotes !== null) {
+        file.setDescription(newNotes);
+      }
+
+      // Jika pengguna memilih/menambahkan ke album tertentu
+      if (targetAlbum) {
+        const albumFolder = getOrCreateFolder(albumsRoot, targetAlbum);
+        albumFolder.addFile(file);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Kenangan berhasil diperbarui.",
+        data: formatFileObject(file, null, payload.year, payload.month, targetAlbum)
+      });
+    }
+
+    // ========================================================
+    // AKSI 3: EDIT INFORMASI ALBUM
+    // ========================================================
+    if (action === "update_album") {
+      const albumId = payload.albumId;
+      const currentTitle = (payload.currentTitle || "").trim();
+      const newTitle = (payload.title || "").trim();
+      const newDesc = payload.description !== undefined ? String(payload.description).trim() : null;
+
+      let albumFolder = null;
+      if (albumId) {
+        albumFolder = DriveApp.getFolderById(albumId);
+      } else if (currentTitle) {
+        albumFolder = getFolderIfExists(albumsRoot, currentTitle);
+      }
+
+      if (!albumFolder) throw new Error("Album tidak ditemukan.");
+
+      if (newTitle && newTitle !== albumFolder.getName()) {
+        albumFolder.setName(newTitle);
+      }
+      if (newDesc !== null) {
+        albumFolder.setDescription(newDesc);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Informasi album berhasil diperbarui.",
+        data: {
+          id: albumFolder.getId(),
+          title: albumFolder.getName(),
+          description: albumFolder.getDescription() || ""
+        }
+      });
+    }
+
+    // ========================================================
+    // AKSI 4: UNGGAH FILE BARU KE CLOUD
+    // ========================================================
+    if (action === "upload") {
+      const fileName = payload.fileName || ("ADNA_" + new Date().getTime());
+      const mimeType = payload.mimeType || "application/octet-stream";
+      const base64Data = payload.base64;
+      const year = String(payload.year || new Date().getFullYear());
+      const rawMonth = String(payload.month || String(new Date().getMonth() + 1).padStart(2, '0'));
+      const monthFolderName = MONTH_NAMES[rawMonth] || rawMonth;
+      const notes = (payload.notes || "").trim();
+      const albumName = (payload.album || "").trim();
+
+      if (!base64Data) {
+        throw new Error("Data Base64 tidak ditemukan dalam request.");
+      }
+
+      let targetSubFolderName = "";
+      let mediaCategory = "";
+      if (mimeType.indexOf("image/") === 0) {
+        targetSubFolderName = "Foto";
+        mediaCategory = "photo";
+      } else if (mimeType.indexOf("video/") === 0) {
+        targetSubFolderName = "Video";
+        mediaCategory = "video";
+      } else {
+        throw new Error("Tipe file tidak didukung (" + mimeType + "). Harap unggah Gambar atau Video.");
+      }
+
+      // Buat struktur folder waktu (Tahun/Bulan)
+      const yearFolder = getOrCreateFolder(rootFolder, year);
+      const monthFolder = getOrCreateFolder(yearFolder, monthFolderName);
+      const targetFolder = getOrCreateFolder(monthFolder, targetSubFolderName);
+
+      // Konversi Base64 ke Blob & simpan
+      const decodedBytes = Utilities.base64Decode(base64Data);
+      const blob = Utilities.newBlob(decodedBytes, mimeType, fileName);
+      const file = targetFolder.createFile(blob);
+
+      // Simpan catatan kenangan jika ada
+      if (notes) {
+        file.setDescription(notes);
+      }
+
+      // Masukkan ke Album jika dipilih
+      if (albumName) {
+        const albumFolder = getOrCreateFolder(albumsRoot, albumName);
+        albumFolder.addFile(file);
+      }
+
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+      return createJsonResponse({
+        status: "success",
+        message: "File berhasil disimpan ke " + targetSubFolderName + (albumName ? " dan Album " + albumName : ""),
+        data: formatFileObject(file, mediaCategory, year, monthFolderName, albumName)
+      });
+    }
+
+    throw new Error("Aksi tidak valid atau tidak dikenali.");
 
   } catch (error) {
     return createJsonResponse({
@@ -235,17 +481,24 @@ function extractFilesFromFolder(folder, category, year, monthFolderName) {
 /**
  * Memformat objek File Google Drive menjadi struktur data respons JSON yang ramah web.
  */
-function formatFileObject(file, category, year, monthFolderName) {
+function formatFileObject(file, category, year, monthFolderName, albumName) {
   const id = file.getId();
+  const mime = file.getMimeType();
+  const detectedCategory = category || (mime.indexOf("video/") === 0 ? "video" : "photo");
+  const notes = file.getDescription() || "";
+
   return {
     id: id,
     name: file.getName(),
-    mimeType: file.getMimeType(),
-    type: category, // "photo" | "video"
+    description: notes,
+    notes: notes,
+    album: albumName || "",
+    mimeType: mime,
+    type: detectedCategory, // "photo" | "video"
     size: file.getSize(),
     createdAt: file.getDateCreated().toISOString(),
-    year: year,
-    month: monthFolderName,
+    year: year || "",
+    month: monthFolderName || "",
     thumbnailUrl: "https://drive.google.com/thumbnail?id=" + id + "&sz=w1000",
     highResUrl: "https://drive.google.com/thumbnail?id=" + id + "&sz=w2000",
     streamUrl: "https://drive.google.com/uc?export=download&id=" + id,

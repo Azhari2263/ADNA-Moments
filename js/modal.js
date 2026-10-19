@@ -1,6 +1,7 @@
 /**
- * ADNA Moments — Fullscreen Lightbox Modal Manager
+ * ADNA Moments — Fullscreen Lightbox Modal Manager v2.0
  * Features: High-res preview, Video streaming, Next/Prev navigation,
+ * Love notes (catatan kenangan), Edit nama & catatan, Album badges,
  * Keyboard shortcuts, Touch swipe gestures, and Drive links.
  */
 
@@ -14,6 +15,11 @@ const ModalManager = {
     // Bind Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
       const modal = document.getElementById('mediaModal');
+      const editModal = document.getElementById('editMediaModal');
+      
+      // Jangan trigger keyboard shortcut jika sedang mengetik di modal edit
+      if (editModal && !editModal.classList.contains('hidden')) return;
+
       if (!modal || modal.classList.contains('hidden')) return;
 
       if (e.key === 'Escape') {
@@ -83,6 +89,9 @@ const ModalManager = {
     const content = document.getElementById('modalContent');
     const titleEl = document.getElementById('modalTitle');
     const dateEl = document.getElementById('modalDate');
+    const notesEl = document.getElementById('modalNotes');
+    const notesContainer = document.getElementById('modalNotesContainer');
+    const albumBadge = document.getElementById('modalAlbumBadge');
     const counterEl = document.getElementById('modalCounter');
     const driveLink = document.getElementById('modalDriveLink');
     const downloadLink = document.getElementById('modalDownloadLink');
@@ -92,6 +101,27 @@ const ModalManager = {
     if (dateEl) dateEl.textContent = this.formatDate(item.createdAt);
     if (counterEl) {
       counterEl.textContent = `${this.currentIndex + 1} / ${this.currentList.length}`;
+    }
+
+    // Catatan Kenangan (Love Notes)
+    if (notesEl && notesContainer) {
+      if (item.notes && item.notes.trim()) {
+        notesEl.textContent = `“${item.notes}”`;
+        notesContainer.classList.remove('hidden');
+      } else {
+        notesEl.textContent = '';
+        notesContainer.classList.add('hidden');
+      }
+    }
+
+    // Album Badge
+    if (albumBadge) {
+      if (item.album) {
+        albumBadge.textContent = item.album;
+        albumBadge.classList.remove('hidden');
+      } else {
+        albumBadge.classList.add('hidden');
+      }
     }
 
     if (driveLink) driveLink.href = item.viewUrl || '#';
@@ -104,18 +134,18 @@ const ModalManager = {
       const img = document.createElement('img');
       img.src = item.highResUrl || item.viewUrl || item.thumbnailUrl;
       img.alt = item.name;
-      img.className = 'max-w-full max-h-[75vh] sm:max-h-[80vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 animate-fadeInScale';
+      img.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 animate-fadeInScale';
       content.appendChild(img);
     } else {
       const videoWrapper = document.createElement('div');
-      videoWrapper.className = 'w-full max-w-4xl max-h-[75vh] sm:max-h-[80vh] flex items-center justify-center';
+      videoWrapper.className = 'w-full max-w-4xl max-h-[70vh] sm:max-h-[75vh] flex items-center justify-center';
       
       const video = document.createElement('video');
       video.src = item.streamUrl;
       video.controls = true;
       video.autoplay = true;
       video.playsInline = true;
-      video.className = 'max-w-full max-h-[75vh] sm:max-h-[80vh] w-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
+      video.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] w-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
       
       videoWrapper.appendChild(video);
       content.appendChild(videoWrapper);
@@ -163,6 +193,137 @@ const ModalManager = {
       modal.classList.add('hidden');
       if (content) content.innerHTML = '';
     }, 280);
+  },
+
+  /* ====================================================
+   * EDIT NAMA FOTO & CATATAN KENANGAN
+   * ==================================================== */
+  openEditModal() {
+    const item = this.currentList[this.currentIndex];
+    if (!item) return;
+
+    const modal = document.getElementById('editMediaModal');
+    const nameInput = document.getElementById('editMediaNameInput');
+    const notesInput = document.getElementById('editMediaNotesInput');
+    const albumSelect = document.getElementById('editMediaAlbumSelect');
+
+    if (nameInput) nameInput.value = item.name || '';
+    if (notesInput) notesInput.value = item.notes || '';
+
+    // Pastikan dropdown album terisi
+    if (window.AlbumsManager) {
+      AlbumsManager.populateDropdowns();
+    }
+    if (albumSelect) {
+      albumSelect.value = item.album || '';
+    }
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  },
+
+  closeEditModal() {
+    const modal = document.getElementById('editMediaModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  },
+
+  async saveEdit() {
+    const item = this.currentList[this.currentIndex];
+    if (!item) return;
+
+    const nameInput = document.getElementById('editMediaNameInput');
+    const notesInput = document.getElementById('editMediaNotesInput');
+    const albumSelect = document.getElementById('editMediaAlbumSelect');
+    const saveBtn = document.getElementById('editMediaSaveBtn');
+
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const newNotes = notesInput ? notesInput.value.trim() : '';
+    const targetAlbum = albumSelect ? albumSelect.value : '';
+
+    if (!newName) {
+      App.showToast('Nama kenangan tidak boleh kosong.', 'warning');
+      return;
+    }
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Menyimpan...';
+    }
+
+    try {
+      const payload = {
+        action: 'update_media',
+        fileId: item.id,
+        name: newName,
+        notes: newNotes,
+        album: targetAlbum,
+        year: item.year,
+        month: item.month
+      };
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        // Perbarui item lokal secara reaktif
+        item.name = newName;
+        item.notes = newNotes;
+        item.description = newNotes;
+        item.album = targetAlbum;
+
+        // Sinkronisasi data di GalleryManager jika ada
+        if (window.GalleryManager && GalleryManager.allMedia) {
+          const gItem = GalleryManager.allMedia.find(m => m.id === item.id);
+          if (gItem) {
+            gItem.name = newName;
+            gItem.notes = newNotes;
+            gItem.description = newNotes;
+            gItem.album = targetAlbum;
+            GalleryManager.applyFilters();
+          }
+        }
+
+        // Sinkronisasi data di AlbumsManager jika ada
+        if (window.AlbumsManager && AlbumsManager.currentAlbumMedia) {
+          const aItem = AlbumsManager.currentAlbumMedia.find(m => m.id === item.id);
+          if (aItem) {
+            aItem.name = newName;
+            aItem.notes = newNotes;
+            aItem.album = targetAlbum;
+            AlbumsManager.renderAlbumMedia(AlbumsManager.currentAlbumMedia);
+          }
+        }
+
+        this.renderCurrent();
+        this.closeEditModal();
+        App.showToast('Kenangan berhasil diperbarui!', 'success');
+      } else {
+        App.showToast(data.message || 'Gagal memperbarui kenangan.', 'error');
+      }
+    } catch (e) {
+      console.error('Update Media Error:', e);
+      App.showToast('Gagal menghubungi server.', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Simpan Perubahan';
+      }
+    }
   },
 
   formatDate(isoString) {

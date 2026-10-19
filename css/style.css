@@ -193,3 +193,20 @@ body {
     font-size: 16px; /* Prevents auto-zoom on iOS Safari */
   }
 }
+
+/* Album Cards */
+.album-card {
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  transform-origin: center bottom;
+  position: relative;
+  background: rgba(20, 10, 16, 0.65);
+  border: 1px solid rgba(225, 29, 72, 0.2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .album-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 35px -10px rgba(225, 29, 72, 0.35), 0 0 20px rgba(0, 0, 0, 0.8);
+    border-color: rgba(251, 113, 133, 0.5);
+  }
+}
