@@ -15,6 +15,10 @@ const GalleryManager = {
   itemsPerPage: 16,
   isLoading: false,
 
+  // Batch Select Mode untuk assign ke album
+  isSelectMode: false,
+  selectedIds: new Set(),
+
   init() {
     this.populateYearOptions();
     this.bindEvents();
@@ -217,22 +221,33 @@ const GalleryManager = {
       const globalIndex = startIndex + index;
       const isVideo = item.type === 'video';
       const delay = (index % 8) * 0.04;
+      const isSelected = this.selectedIds.has(item.id);
 
       const card = document.createElement('div');
-      card.className = 'media-card cursor-pointer animate-fadeInScale aspect-[3/4] sm:aspect-[4/5]';
+      card.className = `media-card cursor-pointer animate-fadeInScale aspect-[3/4] sm:aspect-[4/5] ${
+        this.isSelectMode && isSelected ? 'ring-2 ring-brand-500 scale-[0.98]' : ''
+      }`;
       card.style.animationDelay = `${delay}s`;
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', `Lihat ${item.name}`);
 
       card.onclick = () => {
-        ModalManager.open(item, globalIndex, this.filteredMedia);
+        if (this.isSelectMode) {
+          this.toggleItemSelect(item.id);
+        } else {
+          ModalManager.open(item, globalIndex, this.filteredMedia);
+        }
       };
 
       card.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          ModalManager.open(item, globalIndex, this.filteredMedia);
+          if (this.isSelectMode) {
+            this.toggleItemSelect(item.id);
+          } else {
+            ModalManager.open(item, globalIndex, this.filteredMedia);
+          }
         }
       };
 
@@ -246,6 +261,15 @@ const GalleryManager = {
           class="w-full h-full object-cover transition-transform duration-700 ease-out"
           onerror="this.onerror=null; this.src='https://placehold.co/400x500/180a14/f43f5e?text=Preview+Error'"
         />
+
+        <!-- Selection Checkbox in Select Mode -->
+        ${this.isSelectMode ? `
+          <div class="absolute top-2.5 left-2.5 w-6 h-6 rounded-full flex items-center justify-center z-20 transition-all ${
+            isSelected ? 'bg-brand-500 text-white shadow-lg ring-2 ring-white/50' : 'bg-black/60 text-transparent border border-white/40'
+          }">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          </div>
+        ` : ''}
 
         <!-- Gradient Overlay -->
         <div class="card-overlay absolute inset-0 flex flex-col justify-end p-3 sm:p-4 z-10">
@@ -358,6 +382,155 @@ const GalleryManager = {
     if (sortSelect) sortSelect.value = 'newest';
 
     this.setTypeFilter('all');
+  },
+
+  /* ====================================================
+   * BATCH SELECT & ASSIGN KE ALBUM
+   * ==================================================== */
+  toggleSelectMode(force) {
+    if (typeof force === 'boolean') {
+      this.isSelectMode = force;
+    } else {
+      this.isSelectMode = !this.isSelectMode;
+    }
+
+    if (!this.isSelectMode) {
+      this.selectedIds.clear();
+    }
+
+    const btn = document.getElementById('btnToggleSelectMode');
+    const label = document.getElementById('selectModeLabel');
+
+    if (btn && label) {
+      if (this.isSelectMode) {
+        btn.classList.add('bg-brand-600', 'text-white', 'border-brand-500');
+        btn.classList.remove('text-slate-300');
+        label.textContent = 'Batal Pilih';
+      } else {
+        btn.classList.remove('bg-brand-600', 'text-white', 'border-brand-500');
+        btn.classList.add('text-slate-300');
+        label.textContent = 'Pilih Momen';
+      }
+    }
+
+    this.updateBatchBar();
+    this.renderPaginated();
+  },
+
+  toggleItemSelect(id) {
+    if (this.selectedIds.has(id)) {
+      this.selectedIds.delete(id);
+    } else {
+      this.selectedIds.add(id);
+    }
+    this.updateBatchBar();
+    this.renderPaginated();
+  },
+
+  updateBatchBar() {
+    const batchBar = document.getElementById('batchActionBar');
+    const countEl = document.getElementById('batchCount');
+    if (!batchBar) return;
+
+    if (this.isSelectMode && this.selectedIds.size > 0) {
+      batchBar.classList.remove('hidden');
+      batchBar.classList.add('flex');
+      if (countEl) countEl.textContent = this.selectedIds.size;
+    } else {
+      batchBar.classList.add('hidden');
+      batchBar.classList.remove('flex');
+    }
+  },
+
+  openAssignModal() {
+    if (this.selectedIds.size === 0) {
+      App.showToast('Pilih setidaknya satu momen terlebih dahulu.', 'warning');
+      return;
+    }
+
+    if (window.AlbumsManager) {
+      AlbumsManager.populateDropdowns();
+    }
+
+    const modal = document.getElementById('assignAlbumModal');
+    const countSpan = document.getElementById('assignSelectedCount');
+    if (countSpan) countSpan.textContent = this.selectedIds.size;
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  },
+
+  closeAssignModal() {
+    const modal = document.getElementById('assignAlbumModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  },
+
+  async confirmAssignAlbum() {
+    const select = document.getElementById('assignTargetAlbumSelect');
+    const btn = document.getElementById('confirmAssignBtn');
+    const targetAlbumTitle = select ? select.value : '';
+
+    if (!targetAlbumTitle) {
+      App.showToast('Silakan pilih album tujuan.', 'warning');
+      return;
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const targetAlbumId = selectedOption ? (selectedOption.dataset.albumId || '') : '';
+    const targetYear = selectedOption ? (selectedOption.dataset.year || '') : '';
+    const targetMonth = selectedOption ? (selectedOption.dataset.month || '') : '';
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+    }
+
+    try {
+      const payload = {
+        action: 'assign_media_to_album',
+        fileIds: Array.from(this.selectedIds),
+        albumId: targetAlbumId,
+        albumName: targetAlbumTitle,
+        year: targetYear,
+        month: targetMonth
+      };
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        App.showToast(data.message || 'Kenangan berhasil dimasukkan ke album!', 'success');
+        this.closeAssignModal();
+        this.toggleSelectMode(false);
+        this.fetchGallery();
+        if (window.AlbumsManager) AlbumsManager.fetchAlbums();
+      } else {
+        App.showToast(data.message || 'Gagal memasukkan ke album.', 'error');
+      }
+    } catch (e) {
+      console.error('Assign to Album Error:', e);
+      App.showToast('Gagal menghubungi server.', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Masukkan ke Album';
+      }
+    }
   },
 
   formatShortDate(isoString) {

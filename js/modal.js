@@ -243,7 +243,12 @@ const ModalManager = {
 
     const newName = nameInput ? nameInput.value.trim() : '';
     const newNotes = notesInput ? notesInput.value.trim() : '';
+    const selectedOption = albumSelect ? albumSelect.options[albumSelect.selectedIndex] : null;
     const targetAlbum = albumSelect ? albumSelect.value : '';
+    const targetAlbumId = selectedOption ? (selectedOption.dataset.albumId || '') : '';
+    const targetYear = selectedOption ? (selectedOption.dataset.year || '') : item.year;
+    const targetMonth = selectedOption ? (selectedOption.dataset.month || '') : item.month;
+    const removeFromAlbum = !targetAlbum;
 
     if (!newName) {
       App.showToast('Nama kenangan tidak boleh kosong.', 'warning');
@@ -268,8 +273,10 @@ const ModalManager = {
         name: newName,
         notes: newNotes,
         album: targetAlbum,
-        year: item.year,
-        month: item.month
+        albumId: targetAlbumId,
+        year: targetYear || item.year,
+        month: targetMonth || item.month,
+        removeFromAlbum: removeFromAlbum
       };
 
       const res = await fetch(apiUrl, {
@@ -285,6 +292,7 @@ const ModalManager = {
         item.notes = newNotes;
         item.description = newNotes;
         item.album = targetAlbum;
+        item.albumId = targetAlbumId;
 
         // Sinkronisasi data di GalleryManager jika ada
         if (window.GalleryManager && GalleryManager.allMedia) {
@@ -294,18 +302,23 @@ const ModalManager = {
             gItem.notes = newNotes;
             gItem.description = newNotes;
             gItem.album = targetAlbum;
+            gItem.albumId = targetAlbumId;
             GalleryManager.applyFilters();
           }
         }
 
         // Sinkronisasi data di AlbumsManager jika ada
-        if (window.AlbumsManager && AlbumsManager.currentAlbumMedia) {
-          const aItem = AlbumsManager.currentAlbumMedia.find(m => m.id === item.id);
-          if (aItem) {
-            aItem.name = newName;
-            aItem.notes = newNotes;
-            aItem.album = targetAlbum;
-            AlbumsManager.renderAlbumMedia(AlbumsManager.currentAlbumMedia);
+        if (window.AlbumsManager) {
+          AlbumsManager.fetchAlbums();
+          if (AlbumsManager.currentAlbumMedia) {
+            const aItem = AlbumsManager.currentAlbumMedia.find(m => m.id === item.id);
+            if (aItem) {
+              aItem.name = newName;
+              aItem.notes = newNotes;
+              aItem.album = targetAlbum;
+              aItem.albumId = targetAlbumId;
+              AlbumsManager.renderAlbumMedia(AlbumsManager.currentAlbumMedia);
+            }
           }
         }
 

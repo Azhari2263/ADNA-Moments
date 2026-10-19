@@ -1,9 +1,13 @@
 /**
  * ============================================================================
- * ADNA MOMENTS — ALBUMS MANAGER
+ * ADNA MOMENTS — ALBUMS MANAGER v2.5
  * ============================================================================
- * Mengelola daftar album, pembuatan album baru, detail isi album,
- * serta integrasi dengan upload dan lightbox modal.
+ * Mengelola album dalam hierarki: ADNA Moments / [Tahun] / [Bulan] / [Nama Album]
+ * Mendukung:
+ * 1. Pembuatan album baru berdasarkan Tahun & Bulan tertentu.
+ * 2. Memilih foto/video dari galeri yang sudah ada untuk dimasukkan ke album.
+ * 3. Mengunggah file baru langsung ke dalam album yang baru dibuat.
+ * 4. Buka album dan melihat detail kenangan di dalamnya.
  * ============================================================================
  */
 
@@ -12,6 +16,11 @@ const AlbumsManager = {
   currentAlbum: null,
   currentAlbumMedia: [],
   isLoading: false,
+
+  // State untuk Pemilih Foto di Modal Buat Album
+  selectedGalleryIds: new Set(),
+  newFilesToUpload: [],
+  activePickerTab: 'gallery', // 'gallery' | 'upload'
 
   init() {
     this.bindEvents();
@@ -104,6 +113,7 @@ const AlbumsManager = {
 
       const coverSrc = album.coverUrl || 'icons/icon-512.png';
       const formattedDate = this.formatDate(album.createdAt);
+      const timeBadge = album.year ? `${album.year} • ${album.month || ''}` : formattedDate;
 
       card.innerHTML = `
         <div class="relative w-full aspect-[4/3] overflow-hidden bg-black/60">
@@ -120,6 +130,11 @@ const AlbumsManager = {
           <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] text-rose-200">
             <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span class="font-semibold">${album.totalCount || 0} Kenangan</span>
+          </div>
+
+          <!-- Timeline Location Badge -->
+          <div class="absolute bottom-3 left-3 bg-brand-950/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-brand-500/30 text-[10px] text-brand-300 font-semibold">
+            ${timeBadge}
           </div>
         </div>
 
@@ -153,7 +168,9 @@ const AlbumsManager = {
     }
     const filtered = this.allAlbums.filter(a => 
       (a.title && a.title.toLowerCase().includes(query)) ||
-      (a.description && a.description.toLowerCase().includes(query))
+      (a.description && a.description.toLowerCase().includes(query)) ||
+      (a.year && String(a.year).includes(query)) ||
+      (a.month && String(a.month).toLowerCase().includes(query))
     );
     this.renderAlbums(filtered);
   },
@@ -173,7 +190,10 @@ const AlbumsManager = {
 
     if (titleEl) titleEl.textContent = album.title;
     if (descEl) descEl.textContent = album.description ? `“${album.description}”` : 'Belum ada catatan pengantar untuk album ini.';
-    if (dateEl) dateEl.textContent = `Dibuat pada ${this.formatDate(album.createdAt)}`;
+    if (dateEl) {
+      const loc = album.year ? `${album.year} • ${album.month || ''}` : this.formatDate(album.createdAt);
+      dateEl.textContent = loc;
+    }
     if (countEl) countEl.textContent = `${album.totalCount || 0} Momen Tersimpan`;
 
     if (coverBackdrop) {
@@ -197,12 +217,17 @@ const AlbumsManager = {
     if (grid) grid.innerHTML = '';
 
     try {
-      const response = await fetch(apiUrl + `?album=${encodeURIComponent(album.title)}`);
+      const queryParam = album.id ? `?albumId=${encodeURIComponent(album.id)}` : `?album=${encodeURIComponent(album.title)}`;
+      const response = await fetch(apiUrl + queryParam);
       const result = await response.json();
 
       if (result.status === 'success') {
         this.currentAlbumMedia = result.data || [];
         this.renderAlbumMedia(this.currentAlbumMedia);
+        
+        // Update album counter
+        const countEl = document.getElementById('detailAlbumCount');
+        if (countEl) countEl.textContent = `${this.currentAlbumMedia.length} Momen Tersimpan`;
       } else {
         App.showToast(result.message || 'Gagal memuat isi album.', 'error');
         if (empty) empty.classList.remove('hidden');
@@ -292,7 +317,7 @@ const AlbumsManager = {
   },
 
   /**
-   * Modal Pembuatan Album Baru
+   * Modal Pembuatan Album Baru (dengan Pemilih Foto Galeri & Upload Baru)
    */
   openCreateModal() {
     const modal = document.getElementById('albumFormModal');
@@ -300,16 +325,177 @@ const AlbumsManager = {
     const titleInput = document.getElementById('albumTitleInput');
     const descInput = document.getElementById('albumDescInput');
     const editModeInput = document.getElementById('albumIsEditMode');
+    const timelineSection = document.getElementById('albumTimelineSelects');
+    const mediaPickerSection = document.getElementById('albumMediaPickerSection');
 
     if (modalTitle) modalTitle.textContent = 'Buat Album Kenangan Baru';
     if (editModeInput) editModeInput.value = 'create';
     if (titleInput) titleInput.value = '';
     if (descInput) descInput.value = '';
 
+    // Reset pilihan foto
+    this.selectedGalleryIds.clear();
+    this.newFilesToUpload = [];
+    this.updatePickerBadge();
+
+    // Tampilkan pemilihan timeline & media picker di mode create
+    if (timelineSection) timelineSection.classList.remove('hidden');
+    if (mediaPickerSection) mediaPickerSection.classList.remove('hidden');
+
+    this.populateTimelineSelects();
+    this.switchPickerTab('gallery');
+    this.renderPickerGallery();
+
+    const newFilesQueue = document.getElementById('albumNewFilesQueue');
+    if (newFilesQueue) newFilesQueue.innerHTML = '';
+
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
+  },
+
+  /**
+   * Mengisi pilihan Tahun & Bulan untuk folder album
+   */
+  populateTimelineSelects() {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+    const yearSelect = document.getElementById('albumYearInput');
+    const monthSelect = document.getElementById('albumMonthInput');
+
+    if (yearSelect) {
+      yearSelect.innerHTML = '';
+      for (let y = curYear + 1; y >= curYear - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        if (y === curYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
+    }
+
+    if (monthSelect) {
+      monthSelect.value = curMonth;
+    }
+  },
+
+  /**
+   * Switch antara tab "Pilih dari Galeri" vs "Unggah Foto Baru" di modal
+   */
+  switchPickerTab(tab) {
+    this.activePickerTab = tab;
+    const btnGallery = document.getElementById('pickerTabGalleryBtn');
+    const btnUpload = document.getElementById('pickerTabUploadBtn');
+    const secGallery = document.getElementById('pickerGalleryContainer');
+    const secUpload = document.getElementById('pickerUploadContainer');
+
+    if (tab === 'gallery') {
+      if (btnGallery) btnGallery.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition';
+      if (btnUpload) btnUpload.className = 'flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition';
+      if (secGallery) secGallery.classList.remove('hidden');
+      if (secUpload) secUpload.classList.add('hidden');
+    } else {
+      if (btnUpload) btnUpload.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition';
+      if (btnGallery) btnGallery.className = 'flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition';
+      if (secUpload) secUpload.classList.remove('hidden');
+      if (secGallery) secGallery.classList.add('hidden');
+    }
+  },
+
+  /**
+   * Render grid foto yang sudah ada di galeri untuk dipilih masuk album
+   */
+  renderPickerGallery() {
+    const grid = document.getElementById('pickerGalleryGrid');
+    const emptyEl = document.getElementById('pickerGalleryEmpty');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    const allMedia = (window.GalleryManager && GalleryManager.allMedia) ? GalleryManager.allMedia : [];
+
+    if (!allMedia.length) {
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    allMedia.forEach(item => {
+      const isSelected = this.selectedGalleryIds.has(item.id);
+      const isVideo = item.type === 'video';
+
+      const thumbItem = document.createElement('div');
+      thumbItem.className = `relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all group ${
+        isSelected ? 'border-brand-500 scale-[0.96] ring-2 ring-brand-500/50' : 'border-white/10 opacity-75 hover:opacity-100 hover:border-white/30'
+      }`;
+
+      thumbItem.onclick = () => this.togglePickerItem(item.id, thumbItem);
+
+      thumbItem.innerHTML = `
+        <img src="${item.thumbnailUrl || 'icons/icon-512.png'}" alt="${item.name}" class="w-full h-full object-cover" />
+        
+        <!-- Selection Checkbox Badge -->
+        <div class="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+          isSelected ? 'bg-brand-500 text-white' : 'bg-black/50 text-transparent border border-white/30'
+        }">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+        </div>
+
+        <div class="absolute bottom-0 inset-x-0 p-1 bg-gradient-to-t from-black/90 to-transparent">
+          <p class="text-[9px] text-white truncate">${item.name}</p>
+        </div>
+      `;
+
+      grid.appendChild(thumbItem);
+    });
+  },
+
+  togglePickerItem(fileId, element) {
+    if (this.selectedGalleryIds.has(fileId)) {
+      this.selectedGalleryIds.delete(fileId);
+    } else {
+      this.selectedGalleryIds.add(fileId);
+    }
+    this.updatePickerBadge();
+    this.renderPickerGallery();
+  },
+
+  handleNewFilesSelected(files) {
+    if (!files || !files.length) return;
+    this.newFilesToUpload = Array.from(files);
+    this.updatePickerBadge();
+
+    const queueEl = document.getElementById('albumNewFilesQueue');
+    if (!queueEl) return;
+
+    queueEl.innerHTML = '';
+    this.newFilesToUpload.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'flex items-center justify-between text-[11px] p-2 rounded-xl bg-black/40 border border-white/5 text-slate-300';
+      item.innerHTML = `
+        <span class="truncate max-w-[200px] text-white">${f.name}</span>
+        <span class="text-rose-300 font-semibold">${UploadManager.formatFileSize(f.size)}</span>
+      `;
+      queueEl.appendChild(item);
+    });
+  },
+
+  updatePickerBadge() {
+    const badge = document.getElementById('albumSelectedCountBadge');
+    if (!badge) return;
+
+    const fromGallery = this.selectedGalleryIds.size;
+    const newFiles = this.newFilesToUpload.length;
+
+    let text = `${fromGallery} dari Galeri`;
+    if (newFiles > 0) {
+      text += ` + ${newFiles} Baru`;
+    }
+    badge.textContent = text;
   },
 
   /**
@@ -323,11 +509,17 @@ const AlbumsManager = {
     const titleInput = document.getElementById('albumTitleInput');
     const descInput = document.getElementById('albumDescInput');
     const editModeInput = document.getElementById('albumIsEditMode');
+    const timelineSection = document.getElementById('albumTimelineSelects');
+    const mediaPickerSection = document.getElementById('albumMediaPickerSection');
 
     if (modalTitle) modalTitle.textContent = 'Edit Informasi Album';
     if (editModeInput) editModeInput.value = 'edit';
     if (titleInput) titleInput.value = this.currentAlbum.title || '';
     if (descInput) descInput.value = this.currentAlbum.description || '';
+
+    // Sembunyikan pemilihan media saat hanya mengedit info album
+    if (timelineSection) timelineSection.classList.add('hidden');
+    if (mediaPickerSection) mediaPickerSection.classList.add('hidden');
 
     if (modal) {
       modal.classList.remove('hidden');
@@ -349,11 +541,15 @@ const AlbumsManager = {
   async saveAlbum() {
     const titleInput = document.getElementById('albumTitleInput');
     const descInput = document.getElementById('albumDescInput');
+    const yearSelect = document.getElementById('albumYearInput');
+    const monthSelect = document.getElementById('albumMonthInput');
     const editModeInput = document.getElementById('albumIsEditMode');
     const saveBtn = document.getElementById('saveAlbumBtn');
 
     const title = titleInput ? titleInput.value.trim() : '';
     const desc = descInput ? descInput.value.trim() : '';
+    const year = yearSelect ? yearSelect.value : String(new Date().getFullYear());
+    const month = monthSelect ? monthSelect.value : String(new Date().getMonth() + 1).padStart(2, '0');
     const isEdit = editModeInput && editModeInput.value === 'edit';
 
     if (!title) {
@@ -373,16 +569,20 @@ const AlbumsManager = {
     }
 
     try {
+      const selectedIds = Array.from(this.selectedGalleryIds);
+
       const payload = isEdit ? {
         action: 'update_album',
         albumId: this.currentAlbum ? this.currentAlbum.id : '',
-        currentTitle: this.currentAlbum ? this.currentAlbum.title : '',
         title: title,
         description: desc
       } : {
         action: 'create_album',
         title: title,
-        description: desc
+        year: year,
+        month: month,
+        description: desc,
+        selectedFileIds: selectedIds
       };
 
       const res = await fetch(apiUrl, {
@@ -396,6 +596,17 @@ const AlbumsManager = {
         App.showToast(data.message || 'Album berhasil disimpan!', 'success');
         this.closeModal();
 
+        // Jika ada file baru yang diunggah langsung ke album ini, tambahkan ke antrean upload
+        if (this.newFilesToUpload.length > 0) {
+          App.showToast(`Mengunggah ${this.newFilesToUpload.length} foto baru ke album...`, 'info');
+          // Arahkan nilai dropdown upload ke album baru
+          const uploadAlbumSelect = document.getElementById('uploadAlbum');
+          if (uploadAlbumSelect) uploadAlbumSelect.value = title;
+          
+          UploadManager.handleFiles(this.newFilesToUpload);
+          this.newFilesToUpload = [];
+        }
+
         // Jika sedang di detail album, perbarui tampilan detail
         if (isEdit && this.currentAlbum) {
           this.currentAlbum.title = title;
@@ -407,6 +618,7 @@ const AlbumsManager = {
         }
 
         await this.fetchAlbums();
+        if (window.GalleryManager) GalleryManager.fetchGallery();
       } else {
         App.showToast(data.message || 'Gagal menyimpan album.', 'error');
       }
@@ -422,11 +634,12 @@ const AlbumsManager = {
   },
 
   /**
-   * Mengisi dropdown album di form Unggah dan form Edit Media
+   * Mengisi dropdown album di form Unggah, form Edit Media, dan Modal Assign Batch
    */
   populateDropdowns() {
     const uploadSelect = document.getElementById('uploadAlbum');
     const editSelect = document.getElementById('editMediaAlbumSelect');
+    const assignSelect = document.getElementById('assignTargetAlbumSelect');
 
     const updateSelect = (selectEl, defaultLabel) => {
       if (!selectEl) return;
@@ -436,7 +649,11 @@ const AlbumsManager = {
       this.allAlbums.forEach(album => {
         const opt = document.createElement('option');
         opt.value = album.title;
-        opt.textContent = album.title;
+        opt.dataset.albumId = album.id;
+        opt.dataset.year = album.year || '';
+        opt.dataset.month = album.month || '';
+        const timeInfo = album.year ? ` (${album.year})` : '';
+        opt.textContent = `${album.title}${timeInfo}`;
         selectEl.appendChild(opt);
       });
 
@@ -444,7 +661,8 @@ const AlbumsManager = {
     };
 
     updateSelect(uploadSelect, 'Tanpa Album (Galeri Umum)');
-    updateSelect(editSelect, 'Tidak Masuk Album');
+    updateSelect(editSelect, 'Tidak Masuk Album / Galeri Umum');
+    updateSelect(assignSelect, '-- Pilih Album Tujuan --');
   },
 
   formatDate(isoString) {

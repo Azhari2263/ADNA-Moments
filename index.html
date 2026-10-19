@@ -269,6 +269,10 @@
 
           <!-- Action Buttons -->
           <div class="flex items-center gap-2 ml-auto">
+            <button onclick="GalleryManager.toggleSelectMode()" id="btnToggleSelectMode" class="px-3 py-2 text-xs font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-brand-500 transition inline-flex items-center gap-1.5" title="Pilih beberapa momen untuk dimasukkan ke album">
+              <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              <span id="selectModeLabel">Pilih Momen</span>
+            </button>
             <button onclick="GalleryManager.resetFilters()" class="p-2.5 text-xs text-slate-400 hover:text-white glass-input rounded-xl transition" title="Reset Filter">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -330,6 +334,19 @@
             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
+      </div>
+
+      <!-- Batch Select Floating Action Bar -->
+      <div id="batchActionBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 hidden items-center gap-3 bg-[#0d070b]/95 backdrop-blur-xl border border-brand-500/50 px-5 py-3 rounded-2xl shadow-2xl animate-fadeInScale">
+        <span class="text-xs font-semibold text-white whitespace-nowrap"><span id="batchCount" class="text-brand-400 font-bold">0</span> momen dipilih</span>
+        <div class="h-4 w-[1px] bg-white/20"></div>
+        <button onclick="GalleryManager.openAssignModal()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap inline-flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span>Masukkan ke Album</span>
+        </button>
+        <button onclick="GalleryManager.toggleSelectMode(false)" class="text-xs text-slate-400 hover:text-white px-2 py-1 transition">
+          Batal
+        </button>
       </div>
 
     </section>
@@ -805,14 +822,74 @@
           />
         </div>
 
+        <!-- Timeline: Tahun & Bulan Album -->
+        <div class="grid grid-cols-2 gap-3" id="albumTimelineSelects">
+          <div>
+            <label for="albumYearInput" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Tahun Album</label>
+            <select id="albumYearInput" class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer"></select>
+          </div>
+          <div>
+            <label for="albumMonthInput" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Bulan Album</label>
+            <select id="albumMonthInput" class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer">
+              <option value="01">01 - Januari</option>
+              <option value="02">02 - Februari</option>
+              <option value="03">03 - Maret</option>
+              <option value="04">04 - April</option>
+              <option value="05">05 - Mei</option>
+              <option value="06">06 - Juni</option>
+              <option value="07">07 - Juli</option>
+              <option value="08">08 - Agustus</option>
+              <option value="09">09 - September</option>
+              <option value="10">10 - Oktober</option>
+              <option value="11">11 - November</option>
+              <option value="12">12 - Desember</option>
+            </select>
+          </div>
+        </div>
+
         <div>
           <label for="albumDescInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Catatan Pembuka / Cerita Album</label>
           <textarea 
             id="albumDescInput" 
-            rows="3" 
+            rows="2" 
             placeholder="Tuliskan kata pengantar atau cerita ringkas tentang perjalanan di album ini..." 
             class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none resize-none"
           ></textarea>
+        </div>
+
+        <!-- Media Picker: Pilih dari Galeri vs Upload Baru -->
+        <div id="albumMediaPickerSection" class="pt-3 border-t border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-brand-300 uppercase tracking-wider">Isi Foto / Video Album</span>
+            <span id="albumSelectedCountBadge" class="text-[11px] text-rose-200 bg-brand-950/80 px-2.5 py-0.5 rounded-full border border-brand-500/30">0 Terpilih</span>
+          </div>
+
+          <!-- Picker Tab Buttons -->
+          <div class="flex bg-black/40 p-1 rounded-xl border border-white/5">
+            <button type="button" onclick="AlbumsManager.switchPickerTab('gallery')" id="pickerTabGalleryBtn" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition">
+              Pilih dari Galeri
+            </button>
+            <button type="button" onclick="AlbumsManager.switchPickerTab('upload')" id="pickerTabUploadBtn" class="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition">
+              Unggah Foto Baru
+            </button>
+          </div>
+
+          <!-- Tab 1: Galeri Grid Picker -->
+          <div id="pickerGalleryContainer" class="max-h-52 overflow-y-auto p-1.5 border border-white/5 rounded-2xl bg-black/30">
+            <div id="pickerGalleryGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+            <p id="pickerGalleryEmpty" class="hidden text-center text-xs text-slate-500 py-6">Belum ada foto di galeri untuk dipilih.</p>
+          </div>
+
+          <!-- Tab 2: Upload File Baru Langsung ke Album -->
+          <div id="pickerUploadContainer" class="hidden space-y-2">
+            <div class="border-2 border-dashed border-brand-800/80 rounded-2xl p-4 text-center cursor-pointer hover:border-brand-500 hover:bg-brand-900/10 transition" onclick="document.getElementById('albumNewFileInput').click()">
+              <input type="file" id="albumNewFileInput" multiple accept="image/*,video/*" class="hidden" onchange="AlbumsManager.handleNewFilesSelected(this.files)" />
+              <svg class="w-7 h-7 text-brand-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              <p class="text-xs text-white font-medium">Pilih foto/video dari perangkat</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Format: JPG, PNG, WEBP, MP4</p>
+            </div>
+            <div id="albumNewFilesQueue" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+          </div>
         </div>
       </div>
 
@@ -823,6 +900,50 @@
         <button id="saveAlbumBtn" onclick="AlbumsManager.saveAlbum()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
           Simpan Album
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- ASSIGN TO ALBUM MODAL                          -->
+  <!-- ============================================== -->
+  <div id="assignAlbumModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </div>
+          <h3 class="text-base sm:text-lg font-serif font-bold text-white">Masukkan ke Album</h3>
+        </div>
+        <button onclick="GalleryManager.closeAssignModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 mb-4">
+        Pindahkan <span id="assignSelectedCount" class="font-bold text-brand-400">0</span> kenangan terpilih ke dalam folder album:
+      </p>
+
+      <div class="mb-5">
+        <label for="assignTargetAlbumSelect" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Album Tujuan</label>
+        <select id="assignTargetAlbumSelect" class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none cursor-pointer">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
+        <button onclick="GalleryManager.closeAssignModal(); AlbumsManager.openCreateModal();" class="text-xs text-brand-400 hover:text-white underline">
+          + Buat Album Baru
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="GalleryManager.closeAssignModal()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+            Batal
+          </button>
+          <button id="confirmAssignBtn" onclick="GalleryManager.confirmAssignAlbum()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+            Masukkan ke Album
+          </button>
+        </div>
       </div>
     </div>
   </div>
