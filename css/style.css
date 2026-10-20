@@ -25,7 +25,8 @@ body {
   background-attachment: fixed;
   color: #f8fafc;
   min-height: 100vh;
-  padding-bottom: calc(4.5rem + var(--safe-bottom));
+  padding-bottom: calc(5.25rem + var(--safe-bottom));
+  overflow-x: hidden;
 }
 
 @media (min-width: 640px) {
@@ -162,7 +163,10 @@ body {
 
 /* Safe Area Utility */
 .pb-safe {
-  padding-bottom: max(0.5rem, var(--safe-bottom));
+  padding-bottom: max(0.75rem, var(--safe-bottom));
+}
+.pt-safe {
+  padding-top: max(0.75rem, var(--safe-top));
 }
 
 /* Modal Backdrop & Transitions */
@@ -187,11 +191,21 @@ body {
   box-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
 }
 
-/* Mobile Touch Optimization */
+/* Mobile Touch & Form Input Optimization */
 @media (max-width: 640px) {
-  button, select, input {
-    font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font-size: 16px; /* Prevents auto-zoom on iOS Safari while preserving button typography */
   }
+}
+
+/* Touch momentum scrolling on iOS */
+.overflow-y-auto, .overflow-x-auto, #uploadQueue, #pickerGalleryContainer, #fulfillGalleryContainer {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Touch feedback reset */
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Album Cards */

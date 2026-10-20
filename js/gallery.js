@@ -84,9 +84,9 @@ const GalleryManager = {
       const btn = document.getElementById(`filter-type-${t}`);
       if (!btn) return;
       if (t === type) {
-        btn.className = 'px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all';
+        btn.className = 'flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all text-center';
       } else {
-        btn.className = 'px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all';
+        btn.className = 'flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all text-center';
       }
     });
 

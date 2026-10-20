@@ -92,36 +92,36 @@
         </div>
       </a>
 
-      <!-- Desktop Nav Actions -->
-      <div class="hidden sm:flex items-center gap-3">
-        <button onclick="App.switchPage('gallery')" id="nav-btn-gallery" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-brand-500/30 text-white bg-brand-600/25 shadow-[0_0_15px_rgba(225,29,72,0.3)]">
-          Koleksi Galeri
+      <!-- Desktop & Tablet Nav Actions -->
+      <div class="hidden sm:flex items-center gap-1.5 md:gap-2.5 lg:gap-3">
+        <button onclick="App.switchPage('gallery')" id="nav-btn-gallery" class="px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all border border-brand-500/30 text-white bg-brand-600/25 shadow-[0_0_15px_rgba(225,29,72,0.3)] whitespace-nowrap">
+          <span class="hidden md:inline">Koleksi </span>Galeri
         </button>
 
-        <button onclick="App.switchPage('albums')" id="nav-btn-albums" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5">
-          Album Kenangan
+        <button onclick="App.switchPage('albums')" id="nav-btn-albums" class="px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 whitespace-nowrap">
+          Album<span class="hidden md:inline"> Kenangan</span>
         </button>
 
-        <button onclick="App.switchPage('bucketlist')" id="nav-btn-bucketlist" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span>Impian & Bucket List</span>
+        <button onclick="App.switchPage('bucketlist')" id="nav-btn-bucketlist" class="px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Impian<span class="hidden lg:inline"> & Bucket List</span></span>
         </button>
 
-        <button onclick="App.switchPage('upload')" id="nav-btn-upload" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 relative">
-          Unggah Kenangan
+        <button onclick="App.switchPage('upload')" id="nav-btn-upload" class="px-3 lg:px-4 py-1.5 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 relative whitespace-nowrap">
+          Unggah<span class="hidden md:inline"> Kenangan</span>
           <span id="desk-queue-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center scale-0 opacity-0 transition-all duration-300 shadow-md">
             0
           </span>
         </button>
 
-        <!-- Install PWA Button (Desktop) -->
-        <button id="pwaInstallBtnDesk" onclick="App.promptInstall()" class="hidden items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 transition-all">
+        <!-- Install PWA Button (Desktop & Tablet) -->
+        <button id="pwaInstallBtnDesk" onclick="App.promptInstall()" class="hidden md:inline-flex items-center gap-2 px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 transition-all whitespace-nowrap">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           <span>Pasang App</span>
         </button>
 
         <!-- Settings Button -->
-        <button onclick="App.openSettings()" class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition" title="Pengaturan Server Cloud">
+        <button onclick="App.openSettings()" class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition flex-shrink-0" title="Pengaturan Server Cloud">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg>
         </button>
       </div>
@@ -238,14 +238,14 @@
         <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 pt-2 border-t border-white/5">
           
           <!-- Year Select -->
-          <div class="flex-1 sm:flex-initial">
+          <div class="col-span-1 sm:flex-initial">
             <select id="filterYear" onchange="GalleryManager.applyFilters()" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
               <option value="">Semua Tahun</option>
             </select>
           </div>
 
           <!-- Tanggal Momen (Kalender) Filter -->
-          <div class="flex-1 sm:flex-initial">
+          <div class="col-span-1 sm:flex-initial">
             <input 
               type="date" 
               id="filterDate" 
@@ -256,7 +256,7 @@
           </div>
 
           <!-- Sort Select -->
-          <div class="flex-1 sm:flex-initial">
+          <div class="col-span-2 sm:col-span-1 sm:flex-initial">
             <select id="sortSelect" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
               <option value="newest">Terbaru Dulu</option>
               <option value="oldest">Terlama Dulu</option>
@@ -265,17 +265,19 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex items-center gap-2 ml-auto">
+          <div class="col-span-2 sm:col-span-auto flex items-center justify-between sm:justify-end gap-2 sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0">
             <button onclick="GalleryManager.toggleSelectMode()" id="btnToggleSelectMode" class="px-3 py-2 text-xs font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-brand-500 transition inline-flex items-center gap-1.5" title="Pilih beberapa momen untuk dimasukkan ke album">
-              <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              <svg class="w-4 h-4 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
               <span id="selectModeLabel">Pilih Momen</span>
             </button>
-            <button onclick="GalleryManager.resetFilters()" class="p-2.5 text-xs text-slate-400 hover:text-white glass-input rounded-xl transition" title="Reset Filter">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-            <button onclick="GalleryManager.fetchGallery()" class="p-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition shadow-lg shadow-brand-600/25 group" title="Segarkan Data">
-              <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="GalleryManager.resetFilters()" class="p-2.5 text-xs text-slate-400 hover:text-white glass-input rounded-xl transition flex-shrink-0" title="Reset Filter">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+              <button onclick="GalleryManager.fetchGallery()" class="p-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition shadow-lg shadow-brand-600/25 group flex-shrink-0" title="Segarkan Data">
+                <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+            </div>
           </div>
 
         </div>
@@ -323,7 +325,7 @@
             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
           
-          <div id="page-numbers" class="flex items-center gap-1.5">
+          <div id="page-numbers" class="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
             <!-- Page number buttons injected here -->
           </div>
 
@@ -334,7 +336,7 @@
       </div>
 
       <!-- Batch Select Floating Action Bar -->
-      <div id="batchActionBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 hidden items-center gap-3 bg-[#0d070b]/95 backdrop-blur-xl border border-brand-500/50 px-5 py-3 rounded-2xl shadow-2xl animate-fadeInScale">
+      <div id="batchActionBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 hidden items-center gap-2.5 sm:gap-3 bg-[#0d070b]/95 backdrop-blur-xl border border-brand-500/50 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-2xl animate-fadeInScale max-w-[94%] sm:max-w-none">
         <span class="text-xs font-semibold text-white whitespace-nowrap"><span id="batchCount" class="text-brand-400 font-bold">0</span> momen dipilih</span>
         <div class="h-4 w-[1px] bg-white/20"></div>
         <button onclick="GalleryManager.openAssignModal()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap inline-flex items-center gap-1.5">
@@ -441,24 +443,24 @@
     <section id="album-detail-page" class="page-section pb-12">
       
       <!-- Back Navigation & Actions -->
-      <div class="flex items-center justify-between mb-4 sm:mb-6">
-        <button onclick="App.switchPage('albums')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/40 text-xs sm:text-sm font-medium transition">
+      <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+        <button onclick="App.switchPage('albums')" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/40 text-xs sm:text-sm font-medium transition flex-shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          <span>Semua Album</span>
+          <span><span class="hidden xs:inline sm:inline">Semua </span>Album</span>
         </button>
 
-        <div class="flex items-center gap-2">
-          <button onclick="AlbumsManager.openPhotobookModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white text-xs font-semibold shadow-lg shadow-rose-950/40 transition" title="Buka Photobook Majalah & Cetak PDF">
-            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            <span>Buku Kenangan (PDF)</span>
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap justify-end">
+          <button onclick="AlbumsManager.openPhotobookModal()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white text-xs font-semibold shadow-lg shadow-rose-950/40 transition whitespace-nowrap" title="Buka Photobook Majalah & Cetak PDF">
+            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span><span class="hidden md:inline">Buku Kenangan </span>(PDF)</span>
           </button>
-          <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition" title="Edit Judul & Catatan Album">
-            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-            <span>Edit Album</span>
+          <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition whitespace-nowrap" title="Edit Judul & Catatan Album">
+            <svg class="w-3.5 h-3.5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            <span>Edit<span class="hidden md:inline"> Album</span></span>
           </button>
-          <button onclick="App.switchPage('upload')" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            <span>+ Tambah Kenangan</span>
+          <button onclick="App.switchPage('upload')" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>+ <span class="hidden sm:inline">Tambah </span>Kenangan</span>
           </button>
         </div>
       </div>
@@ -647,15 +649,15 @@
       <!-- Filter & Search Toolbar -->
       <div class="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
         <!-- Tabs Filter -->
-        <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/5 w-full sm:w-auto">
-          <button onclick="BucketListManager.setFilter('all')" id="bucket-tab-all" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all">
+        <div class="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/5 w-full sm:w-auto">
+          <button onclick="BucketListManager.setFilter('all')" id="bucket-tab-all" class="flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all text-center">
             Semua
           </button>
-          <button onclick="BucketListManager.setFilter('pending')" id="bucket-tab-pending" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+          <button onclick="BucketListManager.setFilter('pending')" id="bucket-tab-pending" class="flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all text-center whitespace-nowrap">
             Belum Tercapai
           </button>
-          <button onclick="BucketListManager.setFilter('completed')" id="bucket-tab-completed" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
-            Sudah Terwujud ✨
+          <button onclick="BucketListManager.setFilter('completed')" id="bucket-tab-completed" class="flex-1 sm:flex-none px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all text-center whitespace-nowrap">
+            Terwujud ✨
           </button>
         </div>
 
@@ -702,8 +704,8 @@
   <!-- ============================================== -->
   <!-- MOBILE BOTTOM NAVIGATION                       -->
   <!-- ============================================== -->
-  <nav class="sm:hidden fixed bottom-0 left-0 w-full z-40 pb-safe pt-2">
-    <div class="mx-4 mb-3 glass-nav rounded-2xl flex justify-around items-center p-1.5 shadow-[0_-5px_25px_rgba(0,0,0,0.6)] border border-brand-900/50">
+  <nav class="sm:hidden fixed bottom-0 left-0 w-full z-40 pb-safe pt-2 pointer-events-none">
+    <div class="mx-3.5 mb-2.5 max-w-md mx-auto glass-nav rounded-2xl flex justify-around items-center p-1.5 shadow-[0_-5px_25px_rgba(0,0,0,0.6)] border border-brand-900/50 pointer-events-auto">
       
       <button onclick="App.switchPage('gallery')" id="mob-nav-gallery" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-brand-400 bg-brand-900/40 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
@@ -737,41 +739,41 @@
   <div id="mediaModal" class="fixed inset-0 z-50 bg-black/95 hidden items-center justify-center opacity-0 transition-opacity duration-300 p-2 sm:p-6" role="dialog" aria-modal="true">
     
     <!-- Top Action Bar -->
-    <div class="absolute top-3 left-3 sm:top-5 sm:left-6 flex items-center gap-3 z-50">
+    <div class="absolute top-[max(0.75rem,env(safe-area-inset-top))] left-3 sm:top-5 sm:left-6 flex items-center gap-3 z-50">
       <span id="modalCounter" class="px-3 py-1 rounded-full bg-black/60 border border-white/10 text-white text-xs font-semibold backdrop-blur-md">
         1 / 1
       </span>
     </div>
 
-    <div class="absolute top-3 right-3 sm:top-5 sm:right-6 flex items-center gap-2 z-50">
+    <div class="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 sm:top-5 sm:right-6 flex items-center gap-1.5 sm:gap-2 z-50">
       <!-- Edit Button -->
-      <button onclick="ModalManager.openEditModal()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Edit Nama & Catatan Kenangan">
+      <button onclick="ModalManager.openEditModal()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition flex-shrink-0" title="Edit Nama & Catatan Kenangan">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
       </button>
 
       <!-- Open in Google Drive -->
-      <a id="modalDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Buka di Google Drive">
+      <a id="modalDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition flex-shrink-0" title="Buka di Google Drive">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
       </a>
 
       <!-- Download Button -->
-      <a id="modalDownloadLink" href="#" target="_blank" download class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Unduh File">
+      <a id="modalDownloadLink" href="#" target="_blank" download class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition flex-shrink-0" title="Unduh File">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
       </a>
 
       <!-- Close Button -->
-      <button onclick="ModalManager.close()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition" title="Tutup (Esc)">
+      <button onclick="ModalManager.close()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition flex-shrink-0" title="Tutup (Esc)">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
 
     <!-- Navigation Chevrons -->
-    <button id="modalBtnPrev" onclick="ModalManager.prev()" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Sebelumnya">
-      <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <button id="modalBtnPrev" onclick="ModalManager.prev()" class="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Sebelumnya">
+      <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     </button>
 
-    <button id="modalBtnNext" onclick="ModalManager.next()" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Selanjutnya">
-      <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <button id="modalBtnNext" onclick="ModalManager.next()" class="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-12 sm:h-12 bg-black/50 hover:bg-brand-600/80 rounded-full flex items-center justify-center text-white backdrop-blur-md transition z-40 border border-white/10" aria-label="Media Selanjutnya">
+      <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     </button>
     
     <!-- Central Media Wrapper -->
@@ -780,14 +782,14 @@
     </div>
     
     <!-- Bottom Caption Bar -->
-    <div class="absolute bottom-3 left-0 w-full text-center px-4 pointer-events-none">
-      <div class="inline-block bg-black/75 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 max-w-xl pointer-events-auto">
+    <div class="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-0 w-full text-center px-3 sm:px-4 pointer-events-none">
+      <div class="inline-block bg-black/80 backdrop-blur-md px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl border border-white/10 max-w-lg sm:max-w-xl w-full pointer-events-auto">
         <div class="flex items-center justify-center gap-2 mb-1">
           <span id="modalAlbumBadge" class="hidden px-2.5 py-0.5 rounded-full bg-brand-950 border border-brand-500/40 text-[10px] text-brand-300 font-semibold truncate max-w-[150px]"></span>
-          <h4 id="modalTitle" class="text-white font-serif text-sm sm:text-base font-semibold truncate drop-shadow-md"></h4>
+          <h4 id="modalTitle" class="text-white font-serif text-xs sm:text-base font-semibold truncate drop-shadow-md"></h4>
         </div>
         <div id="modalNotesContainer" class="hidden my-1 px-1">
-          <p id="modalNotes" class="font-serif italic text-xs sm:text-sm text-rose-100/95 leading-relaxed drop-shadow"></p>
+          <p id="modalNotes" class="font-serif italic text-xs sm:text-sm text-rose-100/95 leading-relaxed drop-shadow line-clamp-2 sm:line-clamp-none"></p>
         </div>
         <p id="modalDate" class="text-rose-200/70 text-[10px] sm:text-[11px] mt-0.5"></p>
       </div>
@@ -798,8 +800,8 @@
   <!-- ============================================== -->
   <!-- CLOUD BACKEND SETTINGS MODAL                   -->
   <!-- ============================================== -->
-  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
@@ -846,8 +848,8 @@
   <!-- ============================================== -->
   <!-- EDIT MEDIA MODAL                               -->
   <!-- ============================================== -->
-  <div id="editMediaModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+  <div id="editMediaModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
@@ -915,11 +917,11 @@
   <!-- ============================================== -->
   <!-- CREATE / EDIT ALBUM MODAL                      -->
   <!-- ============================================== -->
-  <div id="albumFormModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
-      <div class="flex items-center justify-between mb-4">
+  <div id="albumFormModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3 flex-shrink-0">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
+          <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400 flex-shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
           </div>
           <h3 id="albumModalHeading" class="text-base sm:text-lg font-serif font-bold text-white">Buat Album Kenangan Baru</h3>
@@ -931,7 +933,7 @@
 
       <input type="hidden" id="albumIsEditMode" value="create" />
 
-      <div class="space-y-4 mb-6">
+      <div class="space-y-4 mb-4 overflow-y-auto pr-1 flex-1">
         <div>
           <label for="albumTitleInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Nama Album Kenangan</label>
           <input 
@@ -1040,8 +1042,8 @@
   <!-- ============================================== -->
   <!-- ASSIGN TO ALBUM MODAL                          -->
   <!-- ============================================== -->
-  <div id="assignAlbumModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale">
+  <div id="assignAlbumModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-brand-900/40 flex items-center justify-center text-brand-400">
@@ -1197,15 +1199,15 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/10">
-        <button onclick="BucketListManager.closeFulfillModal()" class="px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+      <div class="flex flex-col-reverse xs:flex-row sm:flex-row items-center justify-between gap-2 pt-3 border-t border-white/10 w-full">
+        <button onclick="BucketListManager.closeFulfillModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition text-center">
           Batal
         </button>
-        <div class="flex items-center gap-2">
-          <button onclick="BucketListManager.submitFulfill(false)" class="px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition">
-            Tandai Selesai Saja
+        <div class="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-end">
+          <button onclick="BucketListManager.submitFulfill(false)" class="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition whitespace-nowrap text-center">
+            <span class="hidden sm:inline">Tandai </span>Selesai Saja
           </button>
-          <button id="fulfillSubmitBtn" onclick="BucketListManager.submitFulfill(true)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5">
+          <button id="fulfillSubmitBtn" onclick="BucketListManager.submitFulfill(true)" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-lg shadow-amber-600/30 transition flex items-center justify-center gap-1.5 whitespace-nowrap text-center">
             <span>Wujudkan & Buat Album ✨</span>
           </button>
         </div>
@@ -1217,8 +1219,8 @@
   <!-- ============================================== -->
   <!-- BUCKET LIST MODAL (TAMBAH / EDIT IMPIAN)       -->
   <!-- ============================================== -->
-  <div id="bucketlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale">
+  <div id="bucketlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-rose-900/40 flex items-center justify-center text-rose-400">
@@ -1289,8 +1291,8 @@
   <!-- ============================================== -->
   <!-- TAUTKAN FOTO BUKTI IMPIAN MODAL                -->
   <!-- ============================================== -->
-  <div id="bucketlinkPhotoModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+  <div id="bucketlinkPhotoModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale my-auto max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-amber-900/40 flex items-center justify-center text-amber-400">
@@ -1326,23 +1328,23 @@
   <!-- ============================================== -->
   <div id="photobookModal" class="fixed inset-0 z-50 bg-black/95 hidden flex-col overflow-y-auto">
     <!-- Sticky Screen-Only Toolbar -->
-    <div class="sticky top-0 z-20 bg-[#0d070b]/90 backdrop-blur-md px-4 sm:px-8 py-3.5 border-b border-white/10 flex items-center justify-between shadow-2xl photobook-controls">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-300">
+    <div class="sticky top-0 z-20 bg-[#0d070b]/90 backdrop-blur-md px-3 sm:px-8 py-3 border-b border-white/10 flex items-center justify-between shadow-2xl photobook-controls">
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-300 flex-shrink-0">
           📖
         </div>
         <div>
-          <h2 class="text-xs sm:text-sm font-semibold text-white">Buku Kenangan Digital (Photobook)</h2>
-          <p class="text-[10px] text-amber-200/80">Tata letak majalah scrapbook &bull; Siap simpan ke PDF atau Cetak</p>
+          <h2 class="text-xs sm:text-sm font-semibold text-white">Buku Kenangan Digital</h2>
+          <p class="hidden sm:block text-[10px] text-amber-200/80">Tata letak majalah scrapbook &bull; Siap simpan ke PDF atau Cetak</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <button onclick="AlbumsManager.printPhotobook()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-          <span>Cetak / Unduh PDF</span>
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button onclick="AlbumsManager.printPhotobook()" class="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span><span class="hidden sm:inline">Cetak / </span>Unduh PDF</span>
         </button>
-        <button onclick="AlbumsManager.closePhotobookModal()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition" title="Tutup">
+        <button onclick="AlbumsManager.closePhotobookModal()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition flex-shrink-0" title="Tutup">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
