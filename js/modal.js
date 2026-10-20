@@ -204,11 +204,15 @@ const ModalManager = {
 
     const modal = document.getElementById('editMediaModal');
     const nameInput = document.getElementById('editMediaNameInput');
+    const dateInput = document.getElementById('editMediaDateInput');
     const notesInput = document.getElementById('editMediaNotesInput');
     const albumSelect = document.getElementById('editMediaAlbumSelect');
 
     if (nameInput) nameInput.value = item.name || '';
     if (notesInput) notesInput.value = item.notes || '';
+    if (dateInput) {
+      dateInput.value = item.date || (item.createdAt ? item.createdAt.split('T')[0] : '');
+    }
 
     // Pastikan dropdown album terisi
     if (window.AlbumsManager) {
@@ -237,12 +241,14 @@ const ModalManager = {
     if (!item) return;
 
     const nameInput = document.getElementById('editMediaNameInput');
+    const dateInput = document.getElementById('editMediaDateInput');
     const notesInput = document.getElementById('editMediaNotesInput');
     const albumSelect = document.getElementById('editMediaAlbumSelect');
     const saveBtn = document.getElementById('editMediaSaveBtn');
 
     const newName = nameInput ? nameInput.value.trim() : '';
     const newNotes = notesInput ? notesInput.value.trim() : '';
+    const newDate = dateInput ? dateInput.value : '';
     const selectedOption = albumSelect ? albumSelect.options[albumSelect.selectedIndex] : null;
     const targetAlbum = albumSelect ? albumSelect.value : '';
     const targetAlbumId = selectedOption ? (selectedOption.dataset.albumId || '') : '';
@@ -272,6 +278,7 @@ const ModalManager = {
         fileId: item.id,
         name: newName,
         notes: newNotes,
+        date: newDate,
         album: targetAlbum,
         albumId: targetAlbumId,
         year: targetYear || item.year,
@@ -291,6 +298,10 @@ const ModalManager = {
         item.name = newName;
         item.notes = newNotes;
         item.description = newNotes;
+        if (newDate) {
+          item.date = newDate;
+          item.createdAt = newDate + 'T12:00:00.000Z';
+        }
         item.album = targetAlbum;
         item.albumId = targetAlbumId;
 
@@ -301,6 +312,10 @@ const ModalManager = {
             gItem.name = newName;
             gItem.notes = newNotes;
             gItem.description = newNotes;
+            if (newDate) {
+              gItem.date = newDate;
+              gItem.createdAt = newDate + 'T12:00:00.000Z';
+            }
             gItem.album = targetAlbum;
             gItem.albumId = targetAlbumId;
             GalleryManager.applyFilters();

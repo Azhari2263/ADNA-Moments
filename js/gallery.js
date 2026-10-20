@@ -8,7 +8,7 @@ const GalleryManager = {
   filteredMedia: [],
   filterType: 'all',
   filterYear: '',
-  filterMonth: '',
+  filterDate: '',
   searchQuery: '',
   sortBy: 'newest',
   currentPage: 1,
@@ -113,11 +113,11 @@ const GalleryManager = {
 
     try {
       const year = document.getElementById('filterYear')?.value || '';
-      const month = document.getElementById('filterMonth')?.value || '';
+      const dateVal = document.getElementById('filterDate')?.value || '';
 
       let query = '?type=all';
       if (year) query += `&year=${encodeURIComponent(year)}`;
-      if (month) query += `&month=${encodeURIComponent(month)}`;
+      if (dateVal) query += `&date=${encodeURIComponent(dateVal)}`;
 
       const response = await fetch(apiUrl + query);
       const result = await response.json();
@@ -148,10 +148,10 @@ const GalleryManager = {
 
   applyFilters() {
     const yearSelect = document.getElementById('filterYear');
-    const monthSelect = document.getElementById('filterMonth');
+    const dateInput = document.getElementById('filterDate');
 
     this.filterYear = yearSelect ? yearSelect.value : '';
-    this.filterMonth = monthSelect ? monthSelect.value : '';
+    this.filterDate = dateInput ? dateInput.value : '';
 
     this.filteredMedia = this.allMedia.filter(item => {
       // Type match
@@ -160,20 +160,23 @@ const GalleryManager = {
       // Year match
       const matchYear = !this.filterYear ? true : String(item.year) === String(this.filterYear);
 
-      // Month match (supports '10' or '10 - Oktober')
-      let matchMonth = true;
-      if (this.filterMonth) {
-        matchMonth = String(item.month || '').startsWith(this.filterMonth);
+      // Date match (exact YYYY-MM-DD or matching date string)
+      let matchDate = true;
+      if (this.filterDate) {
+        const itemDate = item.date || (item.createdAt ? item.createdAt.split('T')[0] : '');
+        matchDate = itemDate === this.filterDate;
       }
 
       // Search query match
       let matchSearch = true;
       if (this.searchQuery) {
         const name = (item.name || '').toLowerCase();
-        matchSearch = name.includes(this.searchQuery);
+        const notes = (item.notes || '').toLowerCase();
+        const album = (item.album || '').toLowerCase();
+        matchSearch = name.includes(this.searchQuery) || notes.includes(this.searchQuery) || album.includes(this.searchQuery);
       }
 
-      return matchType && matchYear && matchMonth && matchSearch;
+      return matchType && matchYear && matchDate && matchSearch;
     });
 
     // Sorting
@@ -367,18 +370,18 @@ const GalleryManager = {
   resetFilters() {
     this.filterType = 'all';
     this.filterYear = '';
-    this.filterMonth = '';
+    this.filterDate = '';
     this.searchQuery = '';
     this.sortBy = 'newest';
 
     const searchInput = document.getElementById('gallerySearch');
     const yearSelect = document.getElementById('filterYear');
-    const monthSelect = document.getElementById('filterMonth');
+    const dateInput = document.getElementById('filterDate');
     const sortSelect = document.getElementById('sortSelect');
 
     if (searchInput) searchInput.value = '';
     if (yearSelect) yearSelect.value = '';
-    if (monthSelect) monthSelect.value = '';
+    if (dateInput) dateInput.value = '';
     if (sortSelect) sortSelect.value = 'newest';
 
     this.setTypeFilter('all');

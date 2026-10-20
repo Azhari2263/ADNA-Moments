@@ -18,24 +18,28 @@ const UploadManager = {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayStr = `${currentYear}-${currentMonth}-${String(now.getDate()).padStart(2, '0')}`;
 
-    const yearSelect = document.getElementById('uploadYear');
-    const monthSelect = document.getElementById('uploadMonth');
+    const dateInput = document.getElementById('uploadDate');
+    const yearInput = document.getElementById('uploadYear');
+    const monthInput = document.getElementById('uploadMonth');
 
-    if (yearSelect) {
-      yearSelect.innerHTML = '';
-      for (let y = currentYear + 1; y >= currentYear - 5; y--) {
-        const opt = document.createElement('option');
-        opt.value = String(y);
-        opt.textContent = String(y);
-        if (y === currentYear) opt.selected = true;
-        yearSelect.appendChild(opt);
+    if (dateInput) {
+      if (!dateInput.value) {
+        dateInput.value = todayStr;
       }
+      dateInput.addEventListener('change', () => {
+        const val = dateInput.value;
+        if (val) {
+          const [y, m] = val.split('-');
+          if (yearInput) yearInput.value = y;
+          if (monthInput) monthInput.value = m;
+        }
+      });
     }
 
-    if (monthSelect) {
-      monthSelect.value = currentMonth;
-    }
+    if (yearInput && !yearInput.value) yearInput.value = String(currentYear);
+    if (monthInput && !monthInput.value) monthInput.value = currentMonth;
   },
 
   setupDropZone() {
@@ -189,8 +193,10 @@ const UploadManager = {
     try {
       const base64Data = await this.fileToBase64(nextItem.file);
 
-      const year = document.getElementById('uploadYear')?.value || String(new Date().getFullYear());
-      const month = document.getElementById('uploadMonth')?.value || String(new Date().getMonth() + 1).padStart(2, '0');
+      const dateVal = document.getElementById('uploadDate')?.value || new Date().toISOString().split('T')[0];
+      const parts = dateVal.split('-');
+      const year = parts[0] || document.getElementById('uploadYear')?.value || String(new Date().getFullYear());
+      const month = parts[1] || document.getElementById('uploadMonth')?.value || String(new Date().getMonth() + 1).padStart(2, '0');
       const album = nextItem.album || document.getElementById('uploadAlbum')?.value || '';
       const notes = nextItem.notes || document.getElementById('uploadNotes')?.value?.trim() || '';
 
@@ -199,6 +205,7 @@ const UploadManager = {
         fileName: nextItem.name,
         mimeType: nextItem.type,
         base64: base64Data,
+        date: dateVal,
         year: year,
         month: month,
         album: album,

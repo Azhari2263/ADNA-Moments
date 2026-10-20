@@ -19,6 +19,7 @@ const App = {
     if (window.UploadManager) UploadManager.init();
     if (window.GalleryManager) GalleryManager.init();
     if (window.AlbumsManager) AlbumsManager.init();
+    if (window.BucketListManager) BucketListManager.init();
   },
 
   /* ----------------------------------------------------
@@ -94,13 +95,13 @@ const App = {
   initRouter() {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (['upload', 'gallery', 'albums', 'album-detail'].includes(hash)) {
+      if (['upload', 'gallery', 'albums', 'album-detail', 'bucketlist'].includes(hash)) {
         this.switchPage(hash, false);
       }
     });
 
     const initialHash = window.location.hash.replace('#', '');
-    if (['upload', 'albums', 'album-detail'].includes(initialHash)) {
+    if (['upload', 'albums', 'album-detail', 'bucketlist'].includes(initialHash)) {
       this.switchPage(initialHash, false);
     } else {
       this.switchPage('gallery', false);
@@ -116,12 +117,14 @@ const App = {
     const albumsPage = document.getElementById('albums-page');
     const albumDetailPage = document.getElementById('album-detail-page');
     const uploadPage = document.getElementById('upload-page');
+    const bucketlistPage = document.getElementById('bucketlist-page');
 
     const pages = {
       'gallery': galleryPage,
       'albums': albumsPage,
       'album-detail': albumDetailPage,
-      'upload': uploadPage
+      'upload': uploadPage,
+      'bucketlist': bucketlistPage
     };
 
     Object.keys(pages).forEach(key => {
@@ -138,6 +141,7 @@ const App = {
     const dGallery = document.getElementById('nav-btn-gallery');
     const dAlbums = document.getElementById('nav-btn-albums');
     const dUpload = document.getElementById('nav-btn-upload');
+    const dBucketlist = document.getElementById('nav-btn-bucketlist');
     const activeDesk = ['text-white', 'bg-brand-600/25', 'border-brand-500/30', 'shadow-[0_0_15px_rgba(225,29,72,0.3)]'];
     const inactiveDesk = ['text-slate-300', 'border-transparent', 'hover:text-white', 'hover:bg-white/5'];
 
@@ -155,11 +159,13 @@ const App = {
     setDeskNav(dGallery, page === 'gallery');
     setDeskNav(dAlbums, page === 'albums' || page === 'album-detail');
     setDeskNav(dUpload, page === 'upload');
+    setDeskNav(dBucketlist, page === 'bucketlist');
 
     // Mobile Bottom Nav Styling
     const mGallery = document.getElementById('mob-nav-gallery');
     const mAlbums = document.getElementById('mob-nav-albums');
     const mUpload = document.getElementById('mob-nav-upload');
+    const mBucketlist = document.getElementById('mob-nav-bucketlist');
     const activeMob = ['text-brand-400', 'bg-brand-900/40'];
     const inactiveMob = ['text-slate-400'];
 
@@ -177,6 +183,12 @@ const App = {
     setMobNav(mGallery, page === 'gallery');
     setMobNav(mAlbums, page === 'albums' || page === 'album-detail');
     setMobNav(mUpload, page === 'upload');
+    setMobNav(mBucketlist, page === 'bucketlist');
+
+    if (page === 'bucketlist' && window.BucketListManager) {
+      BucketListManager.render();
+      BucketListManager.fetchFromCloud();
+    }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },

@@ -63,6 +63,22 @@ function doGet(e) {
     }
 
     // ========================================================
+    // KASUS SPREADSHEET: BUCKET LIST (?action=bucketlist)
+    // ========================================================
+    if (reqAction === "bucketlist" || filterType === "bucketlist") {
+      const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+      const sheet = getOrCreateSheet(ss, "BucketList", [
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+      ]);
+      const items = getSheetRecords(sheet);
+      return createJsonResponse({
+        status: "success",
+        count: items.length,
+        data: items
+      });
+    }
+
+    // ========================================================
     // KASUS A: DAFTAR SEMUA ALBUM (?action=albums)
     // Mencari semua subfolder di [Tahun] / [Bulan] selain "Foto" dan "Video"
     // ========================================================
@@ -108,12 +124,23 @@ function doGet(e) {
                 }
               }
 
+              let aDesc = sf.getDescription() || "";
+              let aDate = "";
+              const aDateMatch = aDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+              if (aDateMatch) {
+                aDate = aDateMatch[1];
+                aDesc = aDesc.substring(aDateMatch[0].length);
+              } else {
+                aDate = sf.getDateCreated().toISOString().split('T')[0];
+              }
+
               albumsList.push({
                 id: sf.getId(),
                 title: sfName,
                 year: yName,
                 month: mName,
-                description: sf.getDescription() || "",
+                date: aDate,
+                description: aDesc,
                 createdAt: sf.getDateCreated().toISOString(),
                 photoCount: pCount,
                 videoCount: vCount,
@@ -172,12 +199,23 @@ function doGet(e) {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
 
+      let singleDesc = targetAlbumFolder.getDescription() || "";
+      let singleDate = "";
+      const sMatch = singleDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+      if (sMatch) {
+        singleDate = sMatch[1];
+        singleDesc = singleDesc.substring(sMatch[0].length);
+      } else {
+        singleDate = targetAlbumFolder.getDateCreated().toISOString().split('T')[0];
+      }
+
       return createJsonResponse({
         status: "success",
         album: {
           id: targetAlbumFolder.getId(),
           title: targetAlbumFolder.getName(),
-          description: targetAlbumFolder.getDescription() || "",
+          description: singleDesc,
+          date: singleDate,
           createdAt: targetAlbumFolder.getDateCreated().toISOString()
         },
         count: albumFiles.length,
@@ -279,8 +317,19 @@ function doPost(e) {
     if (action === "create_album") {
       const albumTitle = (payload.title || "").trim();
       const albumDesc = (payload.description || "").trim();
-      const year = String(payload.year || new Date().getFullYear());
-      const rawMonth = String(payload.month || String(new Date().getMonth() + 1).padStart(2, '0'));
+      const albumDate = (payload.date || "").trim();
+
+      let year = String(payload.year || "");
+      let rawMonth = String(payload.month || "");
+      if (albumDate && (!year || !rawMonth)) {
+        const parts = albumDate.split('-');
+        if (parts.length >= 2) {
+          year = year || parts[0];
+          rawMonth = rawMonth || parts[1];
+        }
+      }
+      year = year || String(new Date().getFullYear());
+      rawMonth = rawMonth || String(new Date().getMonth() + 1).padStart(2, '0');
       const monthFolderName = MONTH_NAMES[rawMonth] || rawMonth;
       const selectedFileIds = payload.selectedFileIds || [];
 
@@ -293,8 +342,12 @@ function doPost(e) {
       const monthFolder = getOrCreateFolder(yearFolder, monthFolderName);
       const albumFolder = getOrCreateFolder(monthFolder, albumTitle);
 
-      if (albumDesc) {
-        albumFolder.setDescription(albumDesc);
+      let fullDesc = albumDesc;
+      if (albumDate) {
+        fullDesc = "[DATE:" + albumDate + "] " + albumDesc;
+      }
+      if (fullDesc) {
+        albumFolder.setDescription(fullDesc);
       }
 
       // Jika pengguna memilih foto-foto yang sudah ada di galeri untuk dimasukkan ke album ini
@@ -402,6 +455,7 @@ function doPost(e) {
 
       const newName = (payload.name || "").trim();
       const newNotes = payload.notes !== undefined ? String(payload.notes).trim() : null;
+      const newDate = (payload.date || "").trim();
       const targetAlbumId = (payload.albumId || "").trim();
       const targetAlbumName = (payload.album || "").trim();
       const year = String(payload.year || new Date().getFullYear());
@@ -412,8 +466,22 @@ function doPost(e) {
         file.setName(newName);
       }
 
-      if (newNotes !== null) {
-        file.setDescription(newNotes);
+      if (newNotes !== null || newDate) {
+        const existingDesc = file.getDescription() || "";
+        let existingNotes = existingDesc;
+        let currentDate = "";
+        const dateMatch = existingDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+        if (dateMatch) {
+          currentDate = dateMatch[1];
+          existingNotes = existingDesc.substring(dateMatch[0].length);
+        }
+        const notesToSave = newNotes !== null ? newNotes : existingNotes;
+        const dateToSave = newDate || currentDate;
+        let finalDesc = notesToSave;
+        if (dateToSave) {
+          finalDesc = "[DATE:" + dateToSave + "] " + notesToSave;
+        }
+        file.setDescription(finalDesc);
       }
 
       // Pindahkan folder jika album diubah
@@ -487,8 +555,18 @@ function doPost(e) {
       const fileName = payload.fileName || ("ADNA_" + new Date().getTime());
       const mimeType = payload.mimeType || "application/octet-stream";
       const base64Data = payload.base64;
-      const year = String(payload.year || new Date().getFullYear());
-      const rawMonth = String(payload.month || String(new Date().getMonth() + 1).padStart(2, '0'));
+      const uploadDate = (payload.date || "").trim();
+      let year = String(payload.year || "");
+      let rawMonth = String(payload.month || "");
+      if (uploadDate && (!year || !rawMonth)) {
+        const parts = uploadDate.split('-');
+        if (parts.length >= 2) {
+          year = year || parts[0];
+          rawMonth = rawMonth || parts[1];
+        }
+      }
+      year = year || String(new Date().getFullYear());
+      rawMonth = rawMonth || String(new Date().getMonth() + 1).padStart(2, '0');
       const monthFolderName = MONTH_NAMES[rawMonth] || rawMonth;
       const notes = (payload.notes || "").trim();
       const albumId = (payload.albumId || "").trim();
@@ -528,8 +606,12 @@ function doPost(e) {
       const blob = Utilities.newBlob(decodedBytes, mimeType, fileName);
       const file = targetFolder.createFile(blob);
 
-      if (notes) {
-        file.setDescription(notes);
+      let finalDesc = notes;
+      if (uploadDate) {
+        finalDesc = "[DATE:" + uploadDate + "] " + notes;
+      }
+      if (finalDesc) {
+        file.setDescription(finalDesc);
       }
 
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -539,6 +621,152 @@ function doPost(e) {
         message: "File berhasil disimpan ke " + targetFolder.getName(),
         data: formatFileObject(file, mediaCategory, year, monthFolderName, targetAlbumTitle, targetAlbumFolderId)
       });
+    }
+
+    // ========================================================
+    // AKSI 6: SIMPAN / PERBARUI IMPIAN BUCKET LIST (SPREADSHEET)
+    // ========================================================
+    if (action === "save_bucketlist_item") {
+      const item = payload.item || payload;
+      const itemId = String(item.id || ("bl_" + new Date().getTime())).trim();
+      const title = String(item.title || "").trim();
+      const category = String(item.category || "travel").trim();
+      const targetDate = String(item.targetDate || "").trim();
+      const completed = item.completed === true || String(item.completed).toUpperCase() === "TRUE";
+      const completedDate = String(item.completedDate || "").trim();
+      const notes = String(item.notes || "").trim();
+      const photoUrl = String(item.photoUrl || "").trim();
+      const photoId = String(item.photoId || "").trim();
+      const nowIso = new Date().toISOString();
+
+      if (!title) {
+        throw new Error("Nama impian tidak boleh kosong.");
+      }
+
+      const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+      const sheet = getOrCreateSheet(ss, "BucketList", [
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+      ]);
+
+      const data = sheet.getDataRange().getValues();
+      let foundRow = -1;
+
+      for (let r = 1; r < data.length; r++) {
+        if (String(data[r][0]).trim() === itemId) {
+          foundRow = r + 1;
+          break;
+        }
+      }
+
+      const rowData = [
+        itemId,
+        title,
+        category,
+        targetDate,
+        completed ? "TRUE" : "FALSE",
+        completedDate,
+        notes,
+        photoUrl,
+        photoId,
+        foundRow > 0 ? (data[foundRow - 1][9] || nowIso) : nowIso,
+        nowIso
+      ];
+
+      if (foundRow > 0) {
+        sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Impian berhasil disimpan ke Spreadsheet.",
+        data: {
+          id: itemId,
+          title: title,
+          category: category,
+          targetDate: targetDate,
+          completed: completed,
+          completedDate: completedDate,
+          notes: notes,
+          photoUrl: photoUrl,
+          photoId: photoId,
+          createdAt: rowData[9],
+          updatedAt: rowData[10]
+        }
+      });
+    }
+
+    // ========================================================
+    // AKSI 7: HAPUS IMPIAN DARI SPREADSHEET
+    // ========================================================
+    if (action === "delete_bucketlist_item") {
+      const itemId = String(payload.id || "").trim();
+      if (!itemId) throw new Error("ID impian tidak disertakan.");
+
+      const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+      const sheet = ss.getSheetByName("BucketList");
+      if (sheet) {
+        const data = sheet.getDataRange().getValues();
+        for (let r = 1; r < data.length; r++) {
+          if (String(data[r][0]).trim() === itemId) {
+            sheet.deleteRow(r + 1);
+            break;
+          }
+        }
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Impian berhasil dihapus dari Spreadsheet."
+      });
+    }
+
+    // ========================================================
+    // AKSI 8: TOGGLE STATUS IMPIAN (SELESAI / BELUM)
+    // ========================================================
+    if (action === "toggle_bucketlist_item") {
+      const itemId = String(payload.id || "").trim();
+      if (!itemId) throw new Error("ID impian tidak disertakan.");
+
+      const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+      const sheet = getOrCreateSheet(ss, "BucketList", [
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+      ]);
+
+      const data = sheet.getDataRange().getValues();
+      let foundRow = -1;
+      let currentStatus = false;
+      let targetCompletedDate = "";
+
+      for (let r = 1; r < data.length; r++) {
+        if (String(data[r][0]).trim() === itemId) {
+          foundRow = r + 1;
+          currentStatus = String(data[r][4]).toUpperCase() === "TRUE";
+          break;
+        }
+      }
+
+      if (foundRow > 0) {
+        const newStatus = payload.completed !== undefined ? (payload.completed === true || String(payload.completed).toUpperCase() === "TRUE") : !currentStatus;
+        if (newStatus) {
+          targetCompletedDate = payload.completedDate || new Date().toISOString().split("T")[0];
+        }
+        sheet.getRange(foundRow, 5).setValue(newStatus ? "TRUE" : "FALSE");
+        sheet.getRange(foundRow, 6).setValue(targetCompletedDate);
+        sheet.getRange(foundRow, 11).setValue(new Date().toISOString());
+
+        return createJsonResponse({
+          status: "success",
+          data: {
+            id: itemId,
+            completed: newStatus,
+            completedDate: targetCompletedDate
+          }
+        });
+      } else {
+        throw new Error("Impian tidak ditemukan di spreadsheet.");
+      }
     }
 
     throw new Error("Aksi tidak valid atau tidak dikenali.");
@@ -676,13 +904,23 @@ function formatFileObject(file, category, year, monthFolderName, albumName, albu
   const id = file.getId();
   const mime = file.getMimeType();
   const detectedCategory = category || (mime.indexOf("video/") === 0 ? "video" : "photo");
-  const notes = file.getDescription() || "";
+  const rawDesc = file.getDescription() || "";
+  let notes = rawDesc;
+  let eventDate = "";
+  const dateMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+  if (dateMatch) {
+    eventDate = dateMatch[1];
+    notes = rawDesc.substring(dateMatch[0].length);
+  } else {
+    eventDate = file.getDateCreated().toISOString().split('T')[0];
+  }
 
   return {
     id: id,
     name: file.getName(),
     description: notes,
     notes: notes,
+    date: eventDate,
     album: albumName || "",
     albumId: albumId || "",
     mimeType: mime,
@@ -706,4 +944,106 @@ function createJsonResponse(payload) {
   return ContentService
     .createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================================
+// MODUL DATABASE GOOGLE SPREADSHEET (CLOUD SYNC ANTAR-DEVICE)
+// ============================================================================
+const SPREADSHEET_DB_NAME = "ADNA Moments Database";
+
+/**
+ * Mendapatkan atau membuat Spreadsheet Database di dalam folder induk ADNA Moments
+ */
+function getOrCreateDatabaseSpreadsheet(rootFolder) {
+  const files = rootFolder.getFilesByName(SPREADSHEET_DB_NAME);
+  if (files.hasNext()) {
+    const file = files.next();
+    return SpreadsheetApp.openById(file.getId());
+  }
+
+  // Jika belum ada, buat spreadsheet baru dan tempatkan di folder ADNA Moments
+  const newSs = SpreadsheetApp.create(SPREADSHEET_DB_NAME);
+  const ssFile = DriveApp.getFileById(newSs.getId());
+  moveFileToFolder(ssFile, rootFolder);
+
+  // Inisialisasi sheet BucketList
+  const sheet = getOrCreateSheet(newSs, "BucketList", [
+    "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+  ]);
+
+  // Data awal romantis
+  const nowIso = new Date().toISOString();
+  const defaultDreams = [
+    ["bl_init_1", "Liburan Romantis Berdua ke Pantai Sunset", "travel", "", "FALSE", "", "Menikmati semilir angin laut dan senja jingga berdua.", "", "", nowIso, nowIso],
+    ["bl_init_2", "Makan Malam Spesial Candlelight Dinner", "date", "", "FALSE", "", "Quality time berbicara tentang segala hal diiringi musik lembut.", "", "", nowIso, nowIso],
+    ["bl_init_3", "Mencoba Aktivitas Memasak Resep Baru Berdua", "fun", "", "FALSE", "", "Eksperimen di dapur bersama dengan tawa dan cinta.", "", "", nowIso, nowIso],
+    ["bl_init_4", "Mewujudkan Rumah & Masa Depan Bahagia", "milestone", "", "FALSE", "", "Saling bergandengan tangan menatap masa depan yang kita bangun.", "", "", nowIso, nowIso]
+  ];
+
+  for (let r = 0; r < defaultDreams.length; r++) {
+    sheet.appendRow(defaultDreams[r]);
+  }
+
+  return newSs;
+}
+
+/**
+ * Mendapatkan sheet berdasarkan nama atau membuatnya jika belum ada
+ */
+function getOrCreateSheet(spreadsheet, sheetName, headers) {
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+    if (headers && headers.length > 0) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+      sheet.setFrozenRows(1);
+    }
+  }
+  return sheet;
+}
+
+/**
+ * Membaca semua baris data dari sheet menjadi array of object JSON
+ */
+function getSheetRecords(sheet) {
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const records = [];
+
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    const rowObj = {};
+    let hasData = false;
+
+    for (let c = 0; c < headers.length; c++) {
+      const key = headers[c];
+      let val = row[c];
+      if (key === "completed") {
+        val = String(val).toUpperCase() === "TRUE" || val === true;
+      } else if (val instanceof Date) {
+        val = val.toISOString().split("T")[0];
+      } else {
+        val = String(val || "");
+      }
+      rowObj[key] = val;
+      if (val) hasData = true;
+    }
+
+    if (hasData && rowObj.id) {
+      records.push(rowObj);
+    }
+  }
+
+  // Urutkan: impian yang belum selesai di atas, lalu berdasarkan createdAt descending
+  records.sort(function(a, b) {
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+
+  return records;
 }

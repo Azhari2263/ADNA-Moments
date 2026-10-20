@@ -102,6 +102,11 @@
           Album Kenangan
         </button>
 
+        <button onclick="App.switchPage('bucketlist')" id="nav-btn-bucketlist" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Impian & Bucket List</span>
+        </button>
+
         <button onclick="App.switchPage('upload')" id="nav-btn-upload" class="px-4 py-2 rounded-full text-sm font-medium transition-all border border-transparent text-slate-300 hover:text-white hover:bg-white/5 relative">
           Unggah Kenangan
           <span id="desk-queue-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center scale-0 opacity-0 transition-all duration-300 shadow-md">
@@ -239,23 +244,15 @@
             </select>
           </div>
 
-          <!-- Month Select -->
+          <!-- Tanggal Momen (Kalender) Filter -->
           <div class="flex-1 sm:flex-initial">
-            <select id="filterMonth" onchange="GalleryManager.applyFilters()" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
-              <option value="">Semua Bulan</option>
-              <option value="01">Januari</option>
-              <option value="02">Februari</option>
-              <option value="03">Maret</option>
-              <option value="04">April</option>
-              <option value="05">Mei</option>
-              <option value="06">Juni</option>
-              <option value="07">Juli</option>
-              <option value="08">Agustus</option>
-              <option value="09">September</option>
-              <option value="10">Oktober</option>
-              <option value="11">November</option>
-              <option value="12">Desember</option>
-            </select>
+            <input 
+              type="date" 
+              id="filterDate" 
+              onchange="GalleryManager.applyFilters()" 
+              class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer text-slate-200" 
+              title="Filter berdasarkan Tanggal Momen (Kalender)" 
+            />
           </div>
 
           <!-- Sort Select -->
@@ -375,16 +372,29 @@
 
       <!-- Action & Search Toolbar -->
       <div class="glass-panel p-4 rounded-2xl sm:rounded-3xl mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
-        <div class="relative w-full sm:w-80">
-          <input 
-            type="text" 
-            id="albumSearchInput" 
-            placeholder="Cari album kenangan..." 
-            class="w-full glass-input text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-4 placeholder-slate-400 transition"
-          />
-          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
+        <div class="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto flex-1">
+          <div class="relative w-full sm:w-72">
+            <input 
+              type="text" 
+              id="albumSearchInput" 
+              placeholder="Cari album kenangan..." 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-4 placeholder-slate-400 transition"
+            />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+
+          <!-- Date Filter (Kalender) -->
+          <div class="w-full sm:w-auto">
+            <input 
+              type="date" 
+              id="albumFilterDate" 
+              onchange="AlbumsManager.applyDateFilter()" 
+              class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl py-2.5 px-3 outline-none transition cursor-pointer text-slate-200" 
+              title="Filter Album berdasarkan Tanggal Momen (Kalender)" 
+            />
+          </div>
         </div>
 
         <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -438,6 +448,10 @@
         </button>
 
         <div class="flex items-center gap-2">
+          <button onclick="AlbumsManager.openPhotobookModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white text-xs font-semibold shadow-lg shadow-rose-950/40 transition" title="Buka Photobook Majalah & Cetak PDF">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span>Buku Kenangan (PDF)</span>
+          </button>
           <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition" title="Edit Judul & Catatan Album">
             <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
             <span>Edit Album</span>
@@ -514,31 +528,22 @@
 
         <div class="glass-panel p-5 sm:p-8 rounded-3xl shadow-2xl">
           
-          <!-- Timeline Selectors -->
-          <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
-            <div>
-              <label for="uploadYear" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Tahun Momen</label>
-              <select id="uploadYear" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
-                <!-- Dynamically populated -->
-              </select>
-            </div>
-            <div>
-              <label for="uploadMonth" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Bulan Momen</label>
-              <select id="uploadMonth" class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer">
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
-            </div>
+          <!-- Timeline Selectors: Tanggal Momen (Kalender) -->
+          <div class="mb-5 sm:mb-6">
+            <label for="uploadDate" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Tanggal Momen</span>
+            </label>
+            <input 
+              type="date" 
+              id="uploadDate" 
+              class="w-full glass-input rounded-xl p-3 text-xs sm:text-sm outline-none transition cursor-pointer text-white" 
+            />
+            <input type="hidden" id="uploadYear" />
+            <input type="hidden" id="uploadMonth" />
+            <p class="text-[10px] text-slate-400 mt-1.5 font-light">
+              Foto/video akan otomatis dikelompokkan ke folder bulan & tahun terkait di Google Drive.
+            </p>
           </div>
 
           <!-- Album Target Selector -->
@@ -594,6 +599,104 @@
       </div>
     </section>
 
+    <!-- ============================================== -->
+    <!-- BUCKET LIST & IMPIAN BERSAMA (FEATURE #5)      -->
+    <!-- ============================================== -->
+    <section id="bucketlist-page" class="page-section pb-12">
+      
+      <!-- Hero Banner -->
+      <div class="relative w-full h-44 sm:h-56 rounded-3xl overflow-hidden mb-6 sm:mb-8 glass-panel flex items-center justify-center text-center px-4 sm:px-6 shadow-2xl">
+        <div class="absolute inset-0 bg-gradient-to-b from-rose-950/40 via-brand-950/60 to-[#09060a]/95 z-0"></div>
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-950/70 border border-brand-500/30 text-rose-300 text-xs font-semibold mb-3">
+            <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Wishlist & Janji Masa Depan</span>
+          </div>
+          <h1 class="font-serif text-3xl sm:text-5xl font-bold mb-2 text-white drop-shadow-md">
+            Impian Bersama
+          </h1>
+          <p class="text-xs sm:text-sm text-rose-200/80 font-light max-w-xl mx-auto leading-relaxed">
+            Daftar keinginan, petualangan, dan momen berharga yang ingin dan telah kita wujudkan berdua.
+          </p>
+        </div>
+      </div>
+
+      <!-- Progress Tracking Card -->
+      <div class="glass-panel p-5 rounded-2xl sm:rounded-3xl mb-8 border border-amber-500/25 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+          <div>
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span>✨ Pencapaian Impian Kita</span>
+              <span id="bucketProgressPercent" class="text-amber-400 font-bold text-xs px-2 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30">0%</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-1 font-light">
+              <span id="bucketCompletedCount" class="text-white font-semibold">0</span> dari <span id="bucketTotalCount" class="text-brand-400 font-semibold">0</span> impian telah berhasil kita wujudkan bersama.
+            </p>
+          </div>
+          <button onclick="BucketListManager.openCreateModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-lg shadow-brand-600/30 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>+ Tambah Impian Baru</span>
+          </button>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-black/50 rounded-full h-2.5 overflow-hidden border border-white/5">
+          <div id="bucketProgressBar" class="h-full bg-gradient-to-r from-amber-500 via-rose-500 to-brand-500 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="glass-panel p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+        <!-- Tabs Filter -->
+        <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-black/40 border border-white/5 w-full sm:w-auto">
+          <button onclick="BucketListManager.setFilter('all')" id="bucket-tab-all" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition-all">
+            Semua
+          </button>
+          <button onclick="BucketListManager.setFilter('pending')" id="bucket-tab-pending" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+            Belum Tercapai
+          </button>
+          <button onclick="BucketListManager.setFilter('completed')" id="bucket-tab-completed" class="flex-1 sm:flex-none px-4 py-1.5 text-xs sm:text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+            Sudah Terwujud ✨
+          </button>
+        </div>
+
+        <!-- Search & Refresh -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <div class="relative flex-1 sm:w-72">
+            <input 
+              type="text" 
+              id="bucketSearchInput" 
+              placeholder="Cari impian kita..." 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl py-2 pl-9 pr-3 placeholder-slate-400 transition"
+            />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <button onclick="BucketListManager.fetchFromCloud()" class="p-2.5 text-slate-300 hover:text-white glass-input rounded-xl transition" title="Sinkronkan dengan Google Spreadsheet">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="bucketlistEmpty" class="hidden py-16 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 bg-rose-900/30 rounded-full flex items-center justify-center mb-4 border border-rose-500/20">
+          <svg class="w-8 h-8 text-rose-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3 class="text-base sm:text-lg font-serif font-bold text-white mb-1.5">Belum Ada Impian di Kategori Ini</h3>
+        <p class="text-slate-400 text-xs sm:text-sm max-w-sm mb-5">Tuliskan impian kencan, liburan, atau target masa depan yang ingin kalian capai berdua.</p>
+        <button onclick="BucketListManager.openCreateModal()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-full text-xs sm:text-sm font-semibold transition shadow-lg shadow-brand-600/30">
+          Tambah Impian Sekarang
+        </button>
+      </div>
+
+      <!-- Bucket List Grid -->
+      <div id="bucketlistGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Rendered dynamically by BucketListManager -->
+      </div>
+
+    </section>
+
   </main>
 
   <!-- ============================================== -->
@@ -610,6 +713,11 @@
       <button onclick="App.switchPage('albums')" id="mob-nav-albums" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="text-[10px] font-semibold">Album</span>
+      </button>
+
+      <button onclick="App.switchPage('bucketlist')" id="mob-nav-bucketlist" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="text-[10px] font-semibold">Impian</span>
       </button>
 
       <button onclick="App.switchPage('upload')" id="mob-nav-upload" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl text-slate-400 transition relative">
@@ -774,6 +882,18 @@
         </div>
 
         <div>
+          <label for="editMediaDateInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Tanggal Momen</span>
+          </label>
+          <input 
+            type="date" 
+            id="editMediaDateInput" 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none cursor-pointer text-white"
+          />
+        </div>
+
+        <div>
           <label for="editMediaAlbumSelect" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Pilih Album Kenangan</label>
           <select id="editMediaAlbumSelect" class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none cursor-pointer">
             <option value="">Tidak Masuk Album</option>
@@ -822,28 +942,41 @@
           />
         </div>
 
-        <!-- Timeline: Tahun & Bulan Album -->
-        <div class="grid grid-cols-2 gap-3" id="albumTimelineSelects">
+        <!-- Timeline: Tanggal Album (Kalender) & Tahun/Bulan -->
+        <div class="space-y-2.5" id="albumTimelineSelects">
           <div>
-            <label for="albumYearInput" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Tahun Album</label>
-            <select id="albumYearInput" class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer"></select>
+            <label for="albumDateInput" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Tanggal Album</span>
+            </label>
+            <input 
+              type="date" 
+              id="albumDateInput" 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer text-white" 
+            />
           </div>
-          <div>
-            <label for="albumMonthInput" class="block text-[11px] sm:text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Bulan Album</label>
-            <select id="albumMonthInput" class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer">
-              <option value="01">Januari</option>
-              <option value="02">Februari</option>
-              <option value="03">Maret</option>
-              <option value="04">April</option>
-              <option value="05">Mei</option>
-              <option value="06">Juni</option>
-              <option value="07">Juli</option>
-              <option value="08">Agustus</option>
-              <option value="09">September</option>
-              <option value="10">Oktober</option>
-              <option value="11">November</option>
-              <option value="12">Desember</option>
-            </select>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="albumYearInput" class="block text-[11px] font-medium text-slate-400 mb-1">Folder Tahun</label>
+              <select id="albumYearInput" class="w-full glass-input text-xs rounded-xl p-2 outline-none cursor-pointer"></select>
+            </div>
+            <div>
+              <label for="albumMonthInput" class="block text-[11px] font-medium text-slate-400 mb-1">Folder Bulan</label>
+              <select id="albumMonthInput" class="w-full glass-input text-xs rounded-xl p-2 outline-none cursor-pointer">
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -949,6 +1082,148 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- BUCKET LIST MODAL (TAMBAH / EDIT IMPIAN)       -->
+  <!-- ============================================== -->
+  <div id="bucketlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-900/40 flex items-center justify-center text-rose-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 id="bucketModalTitle" class="text-base sm:text-lg font-serif font-bold text-white">Tambah Impian Baru Kita</h3>
+        </div>
+        <button onclick="BucketListManager.closeModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="bucketItemIdInput" value="" />
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label for="bucketTitleInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Nama Impian / Keinginan</label>
+          <input 
+            type="text" 
+            id="bucketTitleInput" 
+            placeholder="Contoh: Liburan Berdua ke Bromo, Makan Malam Rooftop" 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="bucketCategoryInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Kategori</label>
+            <select id="bucketCategoryInput" class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer">
+              <option value="travel">✈️ Liburan & Wisata</option>
+              <option value="date">☕ Kencan Romantis</option>
+              <option value="milestone">💍 Langkah Hidup</option>
+              <option value="fun">🎡 Petualangan & Hobi</option>
+            </select>
+          </div>
+          <div>
+            <label for="bucketTargetDateInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Target Tanggal</label>
+            <input 
+              type="date" 
+              id="bucketTargetDateInput" 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer text-white"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="bucketNotesInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-2">Catatan / Harapan Kita</label>
+          <textarea 
+            id="bucketNotesInput" 
+            rows="3" 
+            placeholder="Tuliskan mengapa impian ini begitu berarti bagi kita berdua..." 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-3 outline-none resize-none"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+        <button onclick="BucketListManager.closeModal()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+          Batal
+        </button>
+        <button onclick="BucketListManager.saveItem()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition">
+          Simpan Impian
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- TAUTKAN FOTO BUKTI IMPIAN MODAL                -->
+  <!-- ============================================== -->
+  <div id="bucketlinkPhotoModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full border-brand-500/30 animate-fadeInScale">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-900/40 flex items-center justify-center text-amber-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-base sm:text-lg font-serif font-bold text-white">Tautkan Foto Kenangan</h3>
+        </div>
+        <button onclick="BucketListManager.closePhotoLinkModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 mb-3">
+        Pilih salah satu foto dari galeri sebagai bukti manis impian ini telah terwujud:
+      </p>
+
+      <div class="max-h-64 overflow-y-auto p-1.5 rounded-2xl bg-black/30 border border-white/5 mb-5">
+        <div id="bucketlinkPhotoGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+          <!-- Populated from GalleryManager -->
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="BucketListManager.closePhotoLinkModal()" class="px-4 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- PHOTOBOOK & SCRAPBOOK MODAL (FEATURE #6)       -->
+  <!-- ============================================== -->
+  <div id="photobookModal" class="fixed inset-0 z-50 bg-black/95 hidden flex-col overflow-y-auto">
+    <!-- Sticky Screen-Only Toolbar -->
+    <div class="sticky top-0 z-20 bg-[#0d070b]/90 backdrop-blur-md px-4 sm:px-8 py-3.5 border-b border-white/10 flex items-center justify-between shadow-2xl photobook-controls">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-300">
+          📖
+        </div>
+        <div>
+          <h2 class="text-xs sm:text-sm font-semibold text-white">Buku Kenangan Digital (Photobook)</h2>
+          <p class="text-[10px] text-amber-200/80">Tata letak majalah scrapbook &bull; Siap simpan ke PDF atau Cetak</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="AlbumsManager.printPhotobook()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span>Cetak / Unduh PDF</span>
+        </button>
+        <button onclick="AlbumsManager.closePhotobookModal()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition" title="Tutup">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Printable Photobook Body -->
+    <div class="max-w-4xl w-full mx-auto p-4 sm:p-10 my-4">
+      <div id="photobookPrintContainer">
+        <!-- Rendered dynamically by AlbumsManager.renderPhotobook -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- TOAST NOTIFICATION CONTAINER                   -->
   <!-- ============================================== -->
   <div id="toastContainer" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5 pointer-events-none w-[92%] sm:w-auto max-w-sm"></div>
@@ -959,6 +1234,7 @@
   <script src="js/modal.js"></script>
   <script src="js/gallery.js"></script>
   <script src="js/albums.js"></script>
+  <script src="js/bucketlist.js"></script>
   <script src="js/upload.js"></script>
   <script src="js/app.js"></script>
 

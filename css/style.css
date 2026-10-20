@@ -210,3 +210,76 @@ body {
     border-color: rgba(251, 113, 133, 0.5);
   }
 }
+
+/* ====================================================
+ * PHOTOBOOK & PRINT MEDIA STYLES (FEATURE #6)
+ * ==================================================== */
+.photobook-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  /* Sembunyikan semua elemen aplikasi di layar kecuali wadah photobook */
+  header, nav, footer, #bottom-nav, #btnScrollTop, .no-print,
+  #gallery-page, #albums-page, #album-detail-page, #upload-page, #bucketlist-page,
+  #mediaModal, #albumFormModal, #assignAlbumModal, #editMediaModal, #bucketlistModal, #bucketlinkPhotoModal,
+  .photobook-controls {
+    display: none !important;
+  }
+
+  #photobookModal {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  #photobookPrintContainer {
+    display: block !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .photobook-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .photobook-card {
+    background: #fafafa !important;
+    color: #111827 !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .photobook-card h3 {
+    color: #111827 !important;
+  }
+
+  .photobook-card p {
+    color: #4b5563 !important;
+  }
+
+  .photobook-card img {
+    max-height: 380px !important;
+    object-fit: cover !important;
+  }
+}

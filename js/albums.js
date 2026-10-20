@@ -35,10 +35,47 @@ const AlbumsManager = {
       searchInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
-          this.filterAlbums(e.target.value.trim().toLowerCase());
+          this.applyCombinedFilter();
         }, 200);
       });
     }
+
+    const dateFilter = document.getElementById('albumFilterDate');
+    if (dateFilter) {
+      dateFilter.addEventListener('change', () => {
+        this.applyCombinedFilter();
+      });
+    }
+  },
+
+  applyDateFilter() {
+    this.applyCombinedFilter();
+  },
+
+  applyCombinedFilter() {
+    const searchVal = (document.getElementById('albumSearchInput')?.value || '').trim().toLowerCase();
+    const dateVal = document.getElementById('albumFilterDate')?.value || '';
+
+    const filtered = this.allAlbums.filter(a => {
+      let matchQuery = true;
+      if (searchVal) {
+        matchQuery = (a.title && a.title.toLowerCase().includes(searchVal)) ||
+                     (a.description && a.description.toLowerCase().includes(searchVal)) ||
+                     (a.year && String(a.year).includes(searchVal)) ||
+                     (a.month && String(a.month).toLowerCase().includes(searchVal));
+      }
+
+      let matchDate = true;
+      if (dateVal) {
+        const aDate = a.date || (a.createdAt ? a.createdAt.split('T')[0] : '');
+        const [filterY, filterM] = dateVal.split('-');
+        matchDate = (aDate === dateVal) || (String(a.year) === filterY && String(a.month || '').startsWith(filterM));
+      }
+
+      return matchQuery && matchDate;
+    });
+
+    this.renderAlbums(filtered);
   },
 
   /**
@@ -162,17 +199,7 @@ const AlbumsManager = {
   },
 
   filterAlbums(query) {
-    if (!query) {
-      this.renderAlbums(this.allAlbums);
-      return;
-    }
-    const filtered = this.allAlbums.filter(a => 
-      (a.title && a.title.toLowerCase().includes(query)) ||
-      (a.description && a.description.toLowerCase().includes(query)) ||
-      (a.year && String(a.year).includes(query)) ||
-      (a.month && String(a.month).toLowerCase().includes(query))
-    );
-    this.renderAlbums(filtered);
+    this.applyCombinedFilter();
   },
 
   /**
@@ -362,9 +389,23 @@ const AlbumsManager = {
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayStr = `${curYear}-${curMonth}-${String(now.getDate()).padStart(2, '0')}`;
 
+    const dateInput = document.getElementById('albumDateInput');
     const yearSelect = document.getElementById('albumYearInput');
     const monthSelect = document.getElementById('albumMonthInput');
+
+    if (dateInput) {
+      if (!dateInput.value) dateInput.value = todayStr;
+      dateInput.addEventListener('change', () => {
+        const val = dateInput.value;
+        if (val) {
+          const [y, m] = val.split('-');
+          if (yearSelect) yearSelect.value = y;
+          if (monthSelect) monthSelect.value = m;
+        }
+      });
+    }
 
     if (yearSelect) {
       yearSelect.innerHTML = '';
@@ -548,8 +589,19 @@ const AlbumsManager = {
 
     const title = titleInput ? titleInput.value.trim() : '';
     const desc = descInput ? descInput.value.trim() : '';
-    const year = yearSelect ? yearSelect.value : String(new Date().getFullYear());
-    const month = monthSelect ? monthSelect.value : String(new Date().getMonth() + 1).padStart(2, '0');
+    const dateInput = document.getElementById('albumDateInput');
+    const dateVal = dateInput ? dateInput.value : '';
+    let year = yearSelect ? yearSelect.value : '';
+    let month = monthSelect ? monthSelect.value : '';
+    if (dateVal) {
+      const parts = dateVal.split('-');
+      if (parts.length >= 2) {
+        year = year || parts[0];
+        month = month || parts[1];
+      }
+    }
+    year = year || String(new Date().getFullYear());
+    month = month || String(new Date().getMonth() + 1).padStart(2, '0');
     const isEdit = editModeInput && editModeInput.value === 'edit';
 
     if (!title) {
@@ -575,10 +627,12 @@ const AlbumsManager = {
         action: 'update_album',
         albumId: this.currentAlbum ? this.currentAlbum.id : '',
         title: title,
+        date: dateVal,
         description: desc
       } : {
         action: 'create_album',
         title: title,
+        date: dateVal,
         year: year,
         month: month,
         description: desc,
@@ -663,6 +717,131 @@ const AlbumsManager = {
     updateSelect(uploadSelect, 'Tanpa Album (Galeri Umum)');
     updateSelect(editSelect, 'Tidak Masuk Album / Galeri Umum');
     updateSelect(assignSelect, '-- Pilih Album Tujuan --');
+  },
+
+  /* ====================================================
+   * NOMOR 6: BUKU KENANGAN DIGITAL (PHOTOBOOK / SCRAPBOOK PDF)
+   * ==================================================== */
+  openPhotobookModal() {
+    if (!this.currentAlbum) {
+      App.showToast('Buka salah satu album terlebih dahulu.', 'warning');
+      return;
+    }
+
+    const modal = document.getElementById('photobookModal');
+    const container = document.getElementById('photobookPrintContainer');
+    if (!modal || !container) return;
+
+    this.renderPhotobook(container);
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  },
+
+  closePhotobookModal() {
+    const modal = document.getElementById('photobookModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+  },
+
+  renderPhotobook(container) {
+    const album = this.currentAlbum;
+    const media = this.currentAlbumMedia || [];
+    const formattedDate = album.date ? this.formatDate(album.date) : `${album.month || ''} ${album.year || ''}`.trim();
+
+    let html = `
+      <!-- Cover Page -->
+      <div class="photobook-page-break p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-[#180a14] via-[#0d070b] to-[#180a14] text-center border border-amber-500/30 shadow-2xl relative overflow-hidden mb-10">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-300 text-xs font-semibold mb-6 uppercase tracking-widest">
+          📖 Buku Kisah Cinta & Kenangan
+        </div>
+        <h1 class="font-serif text-3xl sm:text-5xl font-bold text-white mb-3 tracking-wide leading-tight">
+          ${album.title}
+        </h1>
+        <p class="text-amber-200/90 font-medium text-sm sm:text-base mb-6">
+          ${formattedDate} &bull; ${media.length} Momen Kasih
+        </p>
+        <div class="max-w-xl mx-auto my-6 p-6 rounded-2xl bg-black/40 border border-amber-500/20">
+          <p class="font-serif italic text-sm sm:text-base text-rose-100/90 leading-relaxed">
+            "${album.description || 'Setiap detik bersamamu adalah lembaran indah yang takkan pernah pudar oleh waktu.'}"
+          </p>
+        </div>
+        <p class="text-xs text-rose-300/70 tracking-widest uppercase mt-6 font-serif">
+          ADNA Moments &bull; Diabadikan dengan Cinta
+        </p>
+      </div>
+
+      <!-- Memory Items Grid (Scrapbook Layout) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-10">
+    `;
+
+    if (media.length === 0) {
+      html += `
+        <div class="col-span-2 py-12 text-center text-slate-400">
+          Belum ada foto yang tersimpan dalam album ini.
+        </div>
+      `;
+    } else {
+      media.forEach((item, idx) => {
+        const itemDate = item.date ? this.formatDate(item.date) : (item.createdAt ? this.formatDate(item.createdAt) : '');
+        const thumbUrl = item.highResUrl || item.thumbnailUrl;
+        const notes = item.notes ? item.notes.trim() : '';
+
+        html += `
+          <div class="photobook-card bg-[#150a12] p-4 sm:p-5 rounded-2xl border border-white/10 shadow-xl flex flex-col justify-between">
+            <div class="rounded-xl overflow-hidden bg-black/50 aspect-[4/3] flex items-center justify-center mb-3.5 border border-white/5">
+              ${item.type === 'video' ? `
+                <div class="text-center p-4 text-slate-300 text-xs flex flex-col items-center gap-2">
+                  <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span>Video Momen: ${item.name}</span>
+                </div>
+              ` : `
+                <img src="${thumbUrl}" alt="${item.name}" class="w-full h-full object-cover" loading="lazy" />
+              `}
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-[11px] text-amber-300/90 font-medium mb-1.5">
+                <span>#${idx + 1} Momen</span>
+                <span>${itemDate}</span>
+              </div>
+              <h3 class="text-xs sm:text-sm font-semibold text-white truncate mb-2">
+                ${item.name}
+              </h3>
+              ${notes ? `
+                <div class="bg-black/40 rounded-xl p-3 border border-brand-500/15">
+                  <p class="font-serif italic text-xs text-rose-200/90 leading-relaxed">
+                    "${notes}"
+                  </p>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    html += `
+      </div>
+      <!-- Closing Note -->
+      <div class="text-center py-8 border-t border-white/10">
+        <p class="font-serif italic text-sm text-amber-200">
+          "Terima kasih telah menemani setiap langkah dan membuat setiap momen begitu berharga."
+        </p>
+        <p class="text-xs text-slate-400 mt-2 font-light">
+          ADNA Moments &bull; Dicetak pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  },
+
+  printPhotobook() {
+    window.print();
   },
 
   formatDate(isoString) {
