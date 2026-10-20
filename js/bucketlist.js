@@ -3,6 +3,7 @@
  * Menyimpan data langsung ke Google Spreadsheet via Google Apps Script backend
  * sehingga otomatis tersinkronisasi antar-perangkat (HP Azhari, HP Luv, Laptop, dll).
  * Dilengkapi cache lokal untuk performa kilat dan dukungan offline PWA.
+ * Mendukung pembuktian impian terwujud dengan album kenangan otomatis & foto kenangan.
  */
 
 const BucketListManager = {
@@ -10,6 +11,12 @@ const BucketListManager = {
   currentFilter: 'all', // 'all' | 'pending' | 'completed'
   linkingItemId: null,
   isLoading: false,
+
+  // State untuk Modal Wujudkan Impian (Fulfillment & Album Creation)
+  fulfillingItem: null,
+  fulfillSelectedGalleryIds: new Set(),
+  fulfillNewFilesToUpload: [],
+  activeFulfillTab: 'gallery', // 'gallery' | 'upload'
 
   STORAGE_KEY: 'adna_bucketlist_cache',
 
@@ -147,20 +154,20 @@ const BucketListManager = {
 
       card.innerHTML = `
         <div>
-          <!-- Header: Category & Checkbox -->
+          <!-- Header: Category & Checkbox Button -->
           <div class="flex items-start justify-between gap-3 mb-3">
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${cat.color}">
               <span>${cat.icon}</span>
               <span>${cat.label}</span>
             </span>
 
-            <button onclick="BucketListManager.toggleComplete('${item.id}')" class="p-1.5 rounded-full transition-all group" title="${isDone ? 'Tandai Belum Tercapai' : 'Tandai Sudah Terwujud!'}">
+            <button onclick="BucketListManager.handleCompleteClick('${item.id}')" class="p-1.5 rounded-full transition-all group" title="${isDone ? 'Tandai Belum Tercapai' : 'Wujudkan Impian Ini! ✨'}">
               ${isDone ? `
                 <div class="w-6 h-6 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-amber-500/30">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                 </div>
               ` : `
-                <div class="w-6 h-6 rounded-full border-2 border-slate-500 group-hover:border-brand-400 flex items-center justify-center transition"></div>
+                <div class="w-6 h-6 rounded-full border-2 border-slate-500 group-hover:border-amber-400 group-hover:scale-110 flex items-center justify-center transition"></div>
               `}
             </button>
           </div>
@@ -200,6 +207,16 @@ const BucketListManager = {
               </div>
             ` : ''}
           `}
+
+          <!-- Linked Album Kenangan Button (Jika Dibuatkan Album) -->
+          ${(isDone && item.albumId) ? `
+            <div class="mt-1 mb-3">
+              <button onclick="BucketListManager.openLinkedAlbum('${item.albumId}')" class="w-full py-2 px-3 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-rose-950/40 hover:from-amber-900/50 hover:to-rose-900/50 text-amber-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-md group/albumBtn">
+                <svg class="w-4 h-4 text-amber-400 group-hover/albumBtn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <span>📖 Buka Album Kenangan</span>
+              </button>
+            </div>
+          ` : ''}
         </div>
 
         <!-- Footer Card -->
@@ -222,6 +239,401 @@ const BucketListManager = {
 
       grid.appendChild(card);
     });
+  },
+
+  /**
+   * Buka Album Kenangan terkait yang tersimpan di Google Drive
+   */
+  openLinkedAlbum(albumId) {
+    if (!albumId) return;
+    if (window.App) App.switchPage('albums');
+    if (window.AlbumsManager) {
+      const existing = AlbumsManager.allAlbums.find(a => a.id === albumId);
+      if (existing) {
+        AlbumsManager.openAlbumDetail(existing);
+      } else {
+        AlbumsManager.fetchAlbums().then(() => {
+          const found = AlbumsManager.allAlbums.find(a => a.id === albumId);
+          if (found) {
+            AlbumsManager.openAlbumDetail(found);
+          } else {
+            // Fallback jika belum selesai sync
+            const matchedItem = this.items.find(i => i.albumId === albumId);
+            AlbumsManager.openAlbumDetail({
+              id: albumId,
+              title: matchedItem ? matchedItem.title : 'Album Kenangan',
+              description: matchedItem ? matchedItem.notes : ''
+            });
+          }
+        });
+      }
+    }
+  },
+
+  /**
+   * Handler klik status checklist impian:
+   * Jika belum selesai -> buka modal konfirmasi wujudkan impian + buat album kenangan
+   * Jika sudah selesai -> konfirmasi pembatalan kembali ke belum selesai
+   */
+  handleCompleteClick(itemId) {
+    const item = this.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    const isDone = item.completed === true || String(item.completed).toUpperCase() === 'TRUE';
+    if (isDone) {
+      if (confirm(`Ubah status impian "${item.title}" kembali menjadi Belum Terwujud?`)) {
+        this.toggleComplete(itemId, false);
+      }
+    } else {
+      this.openFulfillModal(itemId);
+    }
+  },
+
+  /**
+   * Buka Modal Wujudkan Impian (Fulfill Modal)
+   */
+  openFulfillModal(itemId) {
+    const item = this.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    this.fulfillingItem = item;
+    this.fulfillSelectedGalleryIds.clear();
+    this.fulfillNewFilesToUpload = [];
+
+    // Pre-select existing proof photo jika ada
+    if (item.photoId) {
+      this.fulfillSelectedGalleryIds.add(item.photoId);
+    }
+
+    const modal = document.getElementById('fulfillBucketModal');
+    const titleEl = document.getElementById('fulfillModalItemTitle');
+    const dateInput = document.getElementById('fulfillDateInput');
+    const albumTitleInput = document.getElementById('fulfillAlbumTitleInput');
+    const albumDescInput = document.getElementById('fulfillAlbumDescInput');
+    const createAlbumCheckbox = document.getElementById('fulfillCreateAlbumCheckbox');
+    const albumSection = document.getElementById('fulfillAlbumSection');
+    const newFilesQueue = document.getElementById('fulfillNewFilesQueue');
+
+    if (titleEl) titleEl.textContent = item.title;
+
+    // Default tanggal terwujud = hari ini (YYYY-MM-DD)
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateInput) dateInput.value = todayStr;
+
+    // Default nama album = nama impian
+    if (albumTitleInput) albumTitleInput.value = item.title;
+    if (albumDescInput) albumDescInput.value = item.notes || '';
+
+    // Centang buat album kenangan secara default
+    if (createAlbumCheckbox) createAlbumCheckbox.checked = true;
+    if (albumSection) albumSection.classList.remove('hidden');
+
+    if (newFilesQueue) newFilesQueue.innerHTML = '';
+
+    // Siapkan tabs & grid media
+    this.switchFulfillTab('gallery');
+    this.renderFulfillGalleryGrid();
+    this.updateFulfillCountBadge();
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  },
+
+  closeFulfillModal() {
+    const modal = document.getElementById('fulfillBucketModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    this.fulfillingItem = null;
+    this.fulfillSelectedGalleryIds.clear();
+    this.fulfillNewFilesToUpload = [];
+  },
+
+  toggleFulfillAlbumOption(checked) {
+    const albumSection = document.getElementById('fulfillAlbumSection');
+    const submitBtn = document.getElementById('fulfillSubmitBtn');
+
+    if (albumSection) {
+      if (checked) {
+        albumSection.classList.remove('hidden');
+      } else {
+        albumSection.classList.add('hidden');
+      }
+    }
+
+    if (submitBtn) {
+      submitBtn.innerHTML = checked 
+        ? `<span>Wujudkan & Buat Album ✨</span>`
+        : `<span>Wujudkan Impian ✨</span>`;
+    }
+  },
+
+  switchFulfillTab(tab) {
+    this.activeFulfillTab = tab;
+    const btnGallery = document.getElementById('fulfillTabGalleryBtn');
+    const btnUpload = document.getElementById('fulfillTabUploadBtn');
+    const secGallery = document.getElementById('fulfillGalleryContainer');
+    const secUpload = document.getElementById('fulfillUploadContainer');
+
+    if (tab === 'gallery') {
+      if (btnGallery) btnGallery.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 text-white transition';
+      if (btnUpload) btnUpload.className = 'flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition';
+      if (secGallery) secGallery.classList.remove('hidden');
+      if (secUpload) secUpload.classList.add('hidden');
+    } else {
+      if (btnUpload) btnUpload.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 text-white transition';
+      if (btnGallery) btnGallery.className = 'flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition';
+      if (secUpload) secUpload.classList.remove('hidden');
+      if (secGallery) secGallery.classList.add('hidden');
+    }
+  },
+
+  renderFulfillGalleryGrid() {
+    const grid = document.getElementById('fulfillGalleryGrid');
+    const emptyEl = document.getElementById('fulfillGalleryEmpty');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    const allMedia = (window.GalleryManager && GalleryManager.allMedia) ? GalleryManager.allMedia : [];
+
+    if (!allMedia.length) {
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    allMedia.forEach(item => {
+      const isSelected = this.fulfillSelectedGalleryIds.has(item.id);
+      const thumbItem = document.createElement('div');
+      thumbItem.className = `relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all group ${
+        isSelected ? 'border-amber-400 scale-[0.96] ring-2 ring-amber-400/50' : 'border-white/10 opacity-75 hover:opacity-100 hover:border-white/30'
+      }`;
+
+      thumbItem.onclick = () => this.toggleFulfillGallerySelect(item.id);
+
+      thumbItem.innerHTML = `
+        <img src="${item.thumbnailUrl || 'icons/icon-512.png'}" alt="${item.name}" class="w-full h-full object-cover" />
+        
+        <div class="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+          isSelected ? 'bg-amber-500 text-white shadow-md' : 'bg-black/50 text-transparent border border-white/30'
+        }">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+        </div>
+
+        <div class="absolute bottom-0 inset-x-0 p-1 bg-gradient-to-t from-black/90 to-transparent">
+          <p class="text-[9px] text-white truncate">${item.name}</p>
+        </div>
+      `;
+
+      grid.appendChild(thumbItem);
+    });
+  },
+
+  toggleFulfillGallerySelect(fileId) {
+    if (this.fulfillSelectedGalleryIds.has(fileId)) {
+      this.fulfillSelectedGalleryIds.delete(fileId);
+    } else {
+      this.fulfillSelectedGalleryIds.add(fileId);
+    }
+    this.updateFulfillCountBadge();
+    this.renderFulfillGalleryGrid();
+  },
+
+  handleNewFilesSelected(files) {
+    if (!files || !files.length) return;
+    this.fulfillNewFilesToUpload = Array.from(files);
+    this.updateFulfillCountBadge();
+
+    const queueEl = document.getElementById('fulfillNewFilesQueue');
+    if (!queueEl) return;
+
+    queueEl.innerHTML = '';
+    this.fulfillNewFilesToUpload.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'flex items-center justify-between text-[11px] p-2 rounded-xl bg-black/40 border border-white/5 text-slate-300';
+      const sizeStr = (window.UploadManager && UploadManager.formatFileSize) ? UploadManager.formatFileSize(f.size) : `${Math.round(f.size/1024)} KB`;
+      item.innerHTML = `
+        <span class="truncate max-w-[200px] text-white">${f.name}</span>
+        <span class="text-amber-300 font-semibold">${sizeStr}</span>
+      `;
+      queueEl.appendChild(item);
+    });
+  },
+
+  updateFulfillCountBadge() {
+    const badge = document.getElementById('fulfillSelectedCountBadge');
+    if (!badge) return;
+
+    const fromGallery = this.fulfillSelectedGalleryIds.size;
+    const newFiles = this.fulfillNewFilesToUpload.length;
+
+    let text = `${fromGallery} Foto Galeri`;
+    if (newFiles > 0) {
+      text += ` + ${newFiles} Baru`;
+    }
+    badge.textContent = text;
+  },
+
+  /**
+   * Submit Wujudkan Impian:
+   * @param {boolean} allowAlbumCreation Apakah akan memproses pembuatan album jika checkbox aktif
+   */
+  async submitFulfill(allowAlbumCreation = true) {
+    if (!this.fulfillingItem) return;
+    const item = this.fulfillingItem;
+
+    const dateInput = document.getElementById('fulfillDateInput');
+    const createAlbumCheckbox = document.getElementById('fulfillCreateAlbumCheckbox');
+    const albumTitleInput = document.getElementById('fulfillAlbumTitleInput');
+    const albumDescInput = document.getElementById('fulfillAlbumDescInput');
+    const submitBtn = document.getElementById('fulfillSubmitBtn');
+
+    const shouldCreateAlbum = allowAlbumCreation && createAlbumCheckbox && createAlbumCheckbox.checked;
+    const dateVal = dateInput ? dateInput.value : '';
+    const albumTitle = (albumTitleInput ? albumTitleInput.value.trim() : '') || item.title;
+    const albumDesc = albumDescInput ? albumDescInput.value.trim() : (item.notes || '');
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur di menu Pengaturan.', 'error');
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>Menyimpan Impian...</span>`;
+    }
+
+    try {
+      let createdAlbumId = '';
+
+      // 1. Buat Album Kenangan di Google Drive jika dipilih
+      if (shouldCreateAlbum) {
+        let year = '';
+        let month = '';
+        if (dateVal) {
+          const parts = dateVal.split('-');
+          if (parts.length >= 2) {
+            year = parts[0];
+            month = parts[1];
+          }
+        }
+        year = year || String(new Date().getFullYear());
+        month = month || String(new Date().getMonth() + 1).padStart(2, '0');
+
+        const selectedIds = Array.from(this.fulfillSelectedGalleryIds);
+
+        const albumRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'create_album',
+            title: albumTitle,
+            date: dateVal,
+            year: year,
+            month: month,
+            description: albumDesc,
+            selectedFileIds: selectedIds
+          })
+        });
+
+        const albumData = await albumRes.json();
+        if (albumData.status === 'success' && albumData.data && albumData.data.id) {
+          createdAlbumId = albumData.data.id;
+          item.albumId = createdAlbumId;
+
+          // Jika ada foto baru yang diunggah, arahkan ke album yang baru dibuat
+          if (this.fulfillNewFilesToUpload.length > 0 && window.UploadManager) {
+            const uploadAlbumSelect = document.getElementById('uploadAlbum');
+            if (uploadAlbumSelect) {
+              let opt = Array.from(uploadAlbumSelect.options).find(o => o.value === albumTitle);
+              if (!opt) {
+                opt = document.createElement('option');
+                opt.value = albumTitle;
+                opt.textContent = `📁 ${albumTitle}`;
+                uploadAlbumSelect.appendChild(opt);
+              }
+              uploadAlbumSelect.value = albumTitle;
+            }
+            UploadManager.handleFiles(this.fulfillNewFilesToUpload);
+          }
+
+          // Otomatis tautkan foto pertama sebagai thumbnail bukti impian jika belum ada photoUrl
+          if (!item.photoUrl && selectedIds.length > 0 && window.GalleryManager && GalleryManager.allMedia) {
+            const firstMedia = GalleryManager.allMedia.find(m => selectedIds.includes(m.id));
+            if (firstMedia) {
+              item.photoUrl = firstMedia.thumbnailUrl || firstMedia.highResUrl;
+              item.photoId = firstMedia.id;
+            }
+          }
+
+          if (window.AlbumsManager) AlbumsManager.fetchAlbums();
+          if (window.GalleryManager) GalleryManager.fetchGallery();
+        } else {
+          console.warn('Gagal membuat album:', albumData.message);
+        }
+      }
+
+      // 2. Format Tanggal Terwujud
+      let formattedDate = '';
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          formattedDate = dt.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          });
+        }
+      }
+      if (!formattedDate) {
+        formattedDate = new Date().toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+
+      // 3. Update status item impian
+      item.completed = true;
+      item.completedDate = formattedDate;
+
+      // Simpan ke local cache & perbarui UI
+      this.saveToCache();
+      this.render();
+      this.closeFulfillModal();
+
+      App.showToast(
+        shouldCreateAlbum 
+          ? `Selamat! Impian "${item.title}" terwujud & Album Kenangan berhasil dibuat! 🎉✨`
+          : `Selamat! Impian "${item.title}" telah terwujud! 🎉✨`, 
+        'success'
+      );
+
+      // 4. Sinkronisasi perubahan status & albumId ke Google Spreadsheet
+      await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_bucketlist_item',
+          item: item
+        })
+      });
+
+    } catch (err) {
+      console.error('Submit fulfill error:', err);
+      App.showToast('Terjadi kesalahan saat memproses impian.', 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Wujudkan & Buat Album ✨</span>`;
+      }
+    }
   },
 
   openCreateModal(itemId = null) {
@@ -308,6 +720,7 @@ const BucketListManager = {
         notes: notes,
         photoUrl: '',
         photoId: '',
+        albumId: '',
         createdAt: new Date().toISOString()
       };
       this.items.unshift(itemToSave);
@@ -336,12 +749,12 @@ const BucketListManager = {
     }
   },
 
-  async toggleComplete(id) {
+  async toggleComplete(id, forcedStatus = undefined) {
     const item = this.items.find(i => i.id === id);
     if (!item) return;
 
     const currentStatus = item.completed === true || String(item.completed).toUpperCase() === 'TRUE';
-    item.completed = !currentStatus;
+    item.completed = (forcedStatus !== undefined) ? forcedStatus : !currentStatus;
 
     if (item.completed) {
       item.completedDate = new Date().toLocaleDateString('id-ID', {
@@ -365,10 +778,8 @@ const BucketListManager = {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            action: 'toggle_bucketlist_item',
-            id: id,
-            completed: item.completed,
-            completedDate: item.completedDate
+            action: 'save_bucketlist_item',
+            item: item
           })
         });
       } catch (e) {

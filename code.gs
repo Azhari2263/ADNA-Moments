@@ -52,14 +52,18 @@ function doGet(e) {
     const filterType = (params.type || "all").toLowerCase();
 
     // 1. Dapatkan folder induk ADNA Moments
-    const rootFolder = getFolderIfExists(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
+    let rootFolder = getFolderIfExists(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
     if (!rootFolder) {
-      return createJsonResponse({ 
-        status: "success", 
-        data: [], 
-        count: 0,
-        message: "Root folder belum dibuat di Google Drive." 
-      });
+      if (reqAction === "bucketlist" || filterType === "bucketlist") {
+        rootFolder = getOrCreateFolder(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
+      } else {
+        return createJsonResponse({ 
+          status: "success", 
+          data: [], 
+          count: 0,
+          message: "Root folder belum dibuat di Google Drive." 
+        });
+      }
     }
 
     // ========================================================
@@ -68,7 +72,7 @@ function doGet(e) {
     if (reqAction === "bucketlist" || filterType === "bucketlist") {
       const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
       const sheet = getOrCreateSheet(ss, "BucketList", [
-        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "albumId", "createdAt", "updatedAt"
       ]);
       const items = getSheetRecords(sheet);
       return createJsonResponse({
@@ -637,6 +641,7 @@ function doPost(e) {
       const notes = String(item.notes || "").trim();
       const photoUrl = String(item.photoUrl || "").trim();
       const photoId = String(item.photoId || "").trim();
+      const albumId = String(item.albumId || "").trim();
       const nowIso = new Date().toISOString();
 
       if (!title) {
@@ -645,7 +650,7 @@ function doPost(e) {
 
       const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
       const sheet = getOrCreateSheet(ss, "BucketList", [
-        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "albumId", "createdAt", "updatedAt"
       ]);
 
       const data = sheet.getDataRange().getValues();
@@ -658,19 +663,25 @@ function doPost(e) {
         }
       }
 
-      const rowData = [
-        itemId,
-        title,
-        category,
-        targetDate,
-        completed ? "TRUE" : "FALSE",
-        completedDate,
-        notes,
-        photoUrl,
-        photoId,
-        foundRow > 0 ? (data[foundRow - 1][9] || nowIso) : nowIso,
-        nowIso
-      ];
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(h) { return String(h).trim(); });
+      const rowData = new Array(headers.length);
+
+      for (let c = 0; c < headers.length; c++) {
+        const key = headers[c];
+        if (key === "id") rowData[c] = itemId;
+        else if (key === "title") rowData[c] = title;
+        else if (key === "category") rowData[c] = category;
+        else if (key === "targetDate") rowData[c] = targetDate;
+        else if (key === "completed") rowData[c] = completed ? "TRUE" : "FALSE";
+        else if (key === "completedDate") rowData[c] = completedDate;
+        else if (key === "notes") rowData[c] = notes;
+        else if (key === "photoUrl") rowData[c] = photoUrl;
+        else if (key === "photoId") rowData[c] = photoId;
+        else if (key === "albumId") rowData[c] = albumId;
+        else if (key === "createdAt") rowData[c] = foundRow > 0 ? (data[foundRow - 1][c] || nowIso) : nowIso;
+        else if (key === "updatedAt") rowData[c] = nowIso;
+        else rowData[c] = "";
+      }
 
       if (foundRow > 0) {
         sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
@@ -691,8 +702,9 @@ function doPost(e) {
           notes: notes,
           photoUrl: photoUrl,
           photoId: photoId,
-          createdAt: rowData[9],
-          updatedAt: rowData[10]
+          albumId: albumId,
+          createdAt: foundRow > 0 ? (data[foundRow - 1][headers.indexOf("createdAt")] || nowIso) : nowIso,
+          updatedAt: nowIso
         }
       });
     }
@@ -731,7 +743,7 @@ function doPost(e) {
 
       const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
       const sheet = getOrCreateSheet(ss, "BucketList", [
-        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+        "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "albumId", "createdAt", "updatedAt"
       ]);
 
       const data = sheet.getDataRange().getValues();
@@ -952,9 +964,14 @@ function createJsonResponse(payload) {
 const SPREADSHEET_DB_NAME = "ADNA Moments Database";
 
 /**
- * Mendapatkan atau membuat Spreadsheet Database di dalam folder induk ADNA Moments
+ * Mendapatkan atau membuat Spreadsheet Database di dalam folder induk ADNA Moments.
+ * Otomatis menangani rootFolder jika tidak disertakan (misal saat dijalankan manual dari editor Apps Script).
  */
 function getOrCreateDatabaseSpreadsheet(rootFolder) {
+  if (!rootFolder) {
+    rootFolder = getOrCreateFolder(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
+  }
+
   const files = rootFolder.getFilesByName(SPREADSHEET_DB_NAME);
   if (files.hasNext()) {
     const file = files.next();
@@ -968,16 +985,16 @@ function getOrCreateDatabaseSpreadsheet(rootFolder) {
 
   // Inisialisasi sheet BucketList
   const sheet = getOrCreateSheet(newSs, "BucketList", [
-    "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "createdAt", "updatedAt"
+    "id", "title", "category", "targetDate", "completed", "completedDate", "notes", "photoUrl", "photoId", "albumId", "createdAt", "updatedAt"
   ]);
 
   // Data awal romantis
   const nowIso = new Date().toISOString();
   const defaultDreams = [
-    ["bl_init_1", "Liburan Romantis Berdua ke Pantai Sunset", "travel", "", "FALSE", "", "Menikmati semilir angin laut dan senja jingga berdua.", "", "", nowIso, nowIso],
-    ["bl_init_2", "Makan Malam Spesial Candlelight Dinner", "date", "", "FALSE", "", "Quality time berbicara tentang segala hal diiringi musik lembut.", "", "", nowIso, nowIso],
-    ["bl_init_3", "Mencoba Aktivitas Memasak Resep Baru Berdua", "fun", "", "FALSE", "", "Eksperimen di dapur bersama dengan tawa dan cinta.", "", "", nowIso, nowIso],
-    ["bl_init_4", "Mewujudkan Rumah & Masa Depan Bahagia", "milestone", "", "FALSE", "", "Saling bergandengan tangan menatap masa depan yang kita bangun.", "", "", nowIso, nowIso]
+    ["bl_init_1", "Liburan Romantis Berdua ke Pantai Sunset", "travel", "", "FALSE", "", "Menikmati semilir angin laut dan senja jingga berdua.", "", "", "", nowIso, nowIso],
+    ["bl_init_2", "Makan Malam Spesial Candlelight Dinner", "date", "", "FALSE", "", "Quality time berbicara tentang segala hal diiringi musik lembut.", "", "", "", nowIso, nowIso],
+    ["bl_init_3", "Mencoba Aktivitas Memasak Resep Baru Berdua", "fun", "", "FALSE", "", "Eksperimen di dapur bersama dengan tawa dan cinta.", "", "", "", nowIso, nowIso],
+    ["bl_init_4", "Mewujudkan Rumah & Masa Depan Bahagia", "milestone", "", "FALSE", "", "Saling bergandengan tangan menatap masa depan yang kita bangun.", "", "", "", nowIso, nowIso]
   ];
 
   for (let r = 0; r < defaultDreams.length; r++) {
@@ -985,6 +1002,14 @@ function getOrCreateDatabaseSpreadsheet(rootFolder) {
   }
 
   return newSs;
+}
+
+/**
+ * Fungsi uji coba untuk verifikasi spreadsheet langsung dari Editor Google Apps Script
+ */
+function testDatabaseSetup() {
+  const ss = getOrCreateDatabaseSpreadsheet();
+  Logger.log("✅ Spreadsheet Database berhasil diinisialisasi: " + ss.getName() + " (" + ss.getUrl() + ")");
 }
 
 /**
@@ -998,6 +1023,21 @@ function getOrCreateSheet(spreadsheet, sheetName, headers) {
       sheet.appendRow(headers);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
       sheet.setFrozenRows(1);
+    }
+  } else {
+    // Pastikan header lengkap jika ada kolom baru (misal albumId)
+    if (headers && headers.length > 0) {
+      const lastCol = sheet.getLastColumn();
+      if (lastCol > 0) {
+        const existingHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+        for (let i = 0; i < headers.length; i++) {
+          if (existingHeaders.indexOf(headers[i]) === -1) {
+            const nextCol = existingHeaders.length + 1;
+            sheet.getRange(1, nextCol).setValue(headers[i]).setFontWeight("bold");
+            existingHeaders.push(headers[i]);
+          }
+        }
+      }
     }
   }
   return sheet;

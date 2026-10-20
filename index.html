@@ -1082,6 +1082,139 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- WUJUDKAN IMPIAN & BUAT ALBUM MODAL             -->
+  <!-- ============================================== -->
+  <div id="fulfillBucketModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl max-w-xl w-full border-amber-500/35 my-auto max-h-[92vh] flex flex-col justify-between shadow-2xl animate-fadeInScale">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between mb-4 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500/30 to-rose-500/30 border border-amber-500/40 flex items-center justify-center text-amber-300 text-lg shadow-md">
+            ✨
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-serif font-bold text-white">Wujudkan Impian Kita</h3>
+            <p id="fulfillModalItemTitle" class="text-xs text-rose-300 font-medium truncate max-w-xs sm:max-w-md"></p>
+          </div>
+        </div>
+        <button onclick="BucketListManager.closeFulfillModal()" class="text-slate-400 hover:text-white p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="space-y-4 overflow-y-auto pr-1 flex-1 mb-4 text-left">
+        <!-- Tanggal Terwujud -->
+        <div>
+          <label for="fulfillDateInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Tanggal Terwujud</span>
+          </label>
+          <input 
+            type="date" 
+            id="fulfillDateInput" 
+            class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none cursor-pointer text-white" 
+          />
+        </div>
+
+        <!-- Checkbox: Buat Album Kenangan -->
+        <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input 
+              type="checkbox" 
+              id="fulfillCreateAlbumCheckbox" 
+              checked 
+              onchange="BucketListManager.toggleFulfillAlbumOption(this.checked)" 
+              class="w-5 h-5 mt-0.5 accent-amber-500 rounded cursor-pointer" 
+            />
+            <div>
+              <span class="text-xs sm:text-sm font-semibold text-white block">Jadikan Momen Ini Sebagai Album Kenangan Baru</span>
+              <p class="text-[11px] text-amber-200/80 mt-0.5 leading-relaxed">
+                Foto-foto kenangan di bawah akan otomatis dikelompokkan ke dalam folder album baru di Google Drive kita.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Section Album Details & Photo Selection -->
+        <div id="fulfillAlbumSection" class="space-y-3.5 pt-1">
+          <div>
+            <label for="fulfillAlbumTitleInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Nama Album Kenangan</label>
+            <input 
+              type="text" 
+              id="fulfillAlbumTitleInput" 
+              placeholder="Contoh: Liburan Romantis ke Bromo" 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none" 
+            />
+          </div>
+
+          <div>
+            <label for="fulfillAlbumDescInput" class="block text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1.5">Catatan Cerita / Love Notes Album</label>
+            <textarea 
+              id="fulfillAlbumDescInput" 
+              rows="2" 
+              placeholder="Tuliskan kisah manis saat impian ini akhirnya terwujud..." 
+              class="w-full glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Photo Selection Header & Badges -->
+          <div class="pt-2 border-t border-white/10">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-amber-300 uppercase tracking-wider">Pilih Foto Kenangan Pembuktian</span>
+              <span id="fulfillSelectedCountBadge" class="text-[11px] text-amber-200 bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-500/30">0 Foto Terpilih</span>
+            </div>
+
+            <!-- Tabs: Pilih dari Galeri vs Unggah Baru -->
+            <div class="flex bg-black/40 p-1 rounded-xl border border-white/5 mb-2.5">
+              <button type="button" onclick="BucketListManager.switchFulfillTab('gallery')" id="fulfillTabGalleryBtn" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 text-white transition">
+                Pilih dari Galeri
+              </button>
+              <button type="button" onclick="BucketListManager.switchFulfillTab('upload')" id="fulfillTabUploadBtn" class="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition">
+                Unggah Foto Baru
+              </button>
+            </div>
+
+            <!-- Tab 1: Galeri Grid Picker -->
+            <div id="fulfillGalleryContainer" class="max-h-48 overflow-y-auto p-1.5 border border-white/5 rounded-2xl bg-black/30">
+              <div id="fulfillGalleryGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+              <p id="fulfillGalleryEmpty" class="hidden text-center text-xs text-slate-500 py-6">Belum ada foto di galeri untuk dipilih.</p>
+            </div>
+
+            <!-- Tab 2: Upload Foto Baru -->
+            <div id="fulfillUploadContainer" class="hidden space-y-2">
+              <div class="border-2 border-dashed border-amber-500/40 rounded-2xl p-4 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-950/20 transition" onclick="document.getElementById('fulfillNewFileInput').click()">
+                <input type="file" id="fulfillNewFileInput" multiple accept="image/*,video/*" class="hidden" onchange="BucketListManager.handleNewFilesSelected(this.files)" />
+                <svg class="w-7 h-7 text-amber-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <p class="text-xs text-white font-medium">Pilih foto/video bukti dari perangkat</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Format: JPG, PNG, WEBP, MP4</p>
+              </div>
+              <div id="fulfillNewFilesQueue" class="space-y-1.5 max-h-28 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between gap-2 pt-3 border-t border-white/10">
+        <button onclick="BucketListManager.closeFulfillModal()" class="px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/5 transition">
+          Batal
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="BucketListManager.submitFulfill(false)" class="px-3.5 py-2 rounded-xl text-xs text-slate-300 hover:text-white border border-white/10 hover:border-white/20 transition">
+            Tandai Selesai Saja
+          </button>
+          <button id="fulfillSubmitBtn" onclick="BucketListManager.submitFulfill(true)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5">
+            <span>Wujudkan & Buat Album ✨</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- BUCKET LIST MODAL (TAMBAH / EDIT IMPIAN)       -->
   <!-- ============================================== -->
   <div id="bucketlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
