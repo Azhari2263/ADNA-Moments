@@ -423,17 +423,37 @@ const GalleryManager = {
     const container = document.getElementById('galleryHighlightContainer');
     if (container) container.classList.remove('hidden');
 
-    // Filter kandidat foto terbaik / memiliki thumbnail valid
-    const candidates = this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo');
-    const pool = candidates.length > 0 ? candidates : this.allMedia;
+    // Filter kandidat foto terbaik (utamakan tipe foto atau media dengan thumbnail valid)
+    const photos = this.allMedia.filter(m => m.type === 'photo');
+    const pool = photos.length >= 5 ? photos : (this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo').length > 0 ? this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo') : this.allMedia);
+
+    if (pool.length === 0) {
+      if (container) container.classList.add('hidden');
+      return;
+    }
 
     // Prioritaskan foto dengan catatan kenangan agar tampilan spotlight kaya cerita
     const withNotes = pool.filter(m => m.notes && m.notes.trim());
     const withoutNotes = pool.filter(m => !m.notes || !m.notes.trim());
 
     const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
-    const selected = [...shuffle(withNotes).slice(0, 4), ...shuffle(withoutNotes).slice(0, 3)];
-    this.highlightItems = shuffle(selected.length > 0 ? selected : pool).slice(0, 5);
+
+    // Ambil foto ber-catatan lebih dulu, lalu penuhi sisa slot dari foto lain hingga target 5 foto
+    const targetCount = Math.min(5, pool.length);
+    const combined = [...shuffle(withNotes), ...shuffle(withoutNotes)];
+
+    // Hilangkan kemungkinan duplikasi ID
+    const uniquePool = [];
+    const seenIds = new Set();
+    for (const item of combined) {
+      if (item && item.id && !seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        uniquePool.push(item);
+      }
+    }
+
+    // Ambil tepat targetCount (5 foto jika total foto >= 5) lalu acak urutan tampilnya
+    this.highlightItems = shuffle(uniquePool.slice(0, targetCount));
     this.currentHighlightIndex = 0;
 
     this.renderHighlightSlide(0);
