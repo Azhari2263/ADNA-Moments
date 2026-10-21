@@ -593,6 +593,47 @@
         <!-- Rendered dynamically -->
       </div>
 
+      <!-- Album Pagination Controls -->
+      <div id="album-pagination-controls" class="hidden mt-10 mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-brand-900/40 pt-6">
+        
+        <!-- Info & Items Per Page Selector -->
+        <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          <div>
+            Menampilkan <span id="album-page-info-start" class="font-semibold text-white">0</span> - <span id="album-page-info-end" class="font-semibold text-white">0</span> dari <span id="album-page-info-total" class="font-semibold text-brand-400">0</span> momen
+          </div>
+          <div class="flex items-center gap-1.5 text-xs">
+            <span>Tampilkan:</span>
+            <select id="albumItemsPerPageSelect" onchange="AlbumsManager.setItemsPerPage(this.value)" class="glass-input rounded-xl px-2 py-1 text-xs outline-none cursor-pointer text-slate-200">
+              <option value="20" selected>20 / hal</option>
+              <option value="30">30 / hal</option>
+              <option value="60">60 / hal</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button onclick="AlbumsManager.goToPage(1)" id="btn-album-first-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Pertama" title="Halaman Pertama">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+          </button>
+          <button onclick="AlbumsManager.changePage(-1)" id="btn-album-prev-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Sebelumnya" title="Sebelumnya">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          
+          <div id="album-page-numbers" class="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
+            <!-- Page number buttons injected here -->
+          </div>
+
+          <button onclick="AlbumsManager.changePage(1)" id="btn-album-next-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Selanjutnya" title="Selanjutnya">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button onclick="AlbumsManager.goToPage('last')" id="btn-album-last-page" class="p-2 sm:p-2.5 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/50 disabled:opacity-25 disabled:cursor-not-allowed transition" aria-label="Halaman Terakhir" title="Halaman Terakhir">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+      </div>
+
     </section>
 
     <!-- ============================================== -->

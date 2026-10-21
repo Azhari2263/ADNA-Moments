@@ -16,6 +16,8 @@ const AlbumsManager = {
   currentAlbum: null,
   currentAlbumMedia: [],
   isLoading: false,
+  currentPage: 1,
+  itemsPerPage: 20, // Default 20 momen per halaman untuk performa ringan
 
   // State untuk Pemilih Foto di Modal Buat Album
   selectedGalleryIds: new Set(),
@@ -218,6 +220,7 @@ const AlbumsManager = {
    */
   async openAlbumDetail(album) {
     this.currentAlbum = album;
+    this.currentPage = 1;
     App.switchPage('album-detail');
 
     const titleEl = document.getElementById('detailAlbumTitle');
@@ -261,7 +264,8 @@ const AlbumsManager = {
 
       if (result.status === 'success') {
         this.currentAlbumMedia = result.data || [];
-        this.renderAlbumMedia(this.currentAlbumMedia);
+        this.currentPage = 1;
+        this.renderPaginatedMedia();
         
         // Update album counter
         const countEl = document.getElementById('detailAlbumCount');
@@ -279,79 +283,186 @@ const AlbumsManager = {
   },
 
   /**
-   * Render foto/video di dalam halaman detail album
+   * Render foto/video di dalam halaman detail album dengan sistem pagination
    */
   renderAlbumMedia(mediaList) {
+    if (mediaList) this.currentAlbumMedia = mediaList;
+    this.renderPaginatedMedia();
+  },
+
+  renderPaginatedMedia() {
     const grid = document.getElementById('detailAlbumGrid');
     const empty = document.getElementById('detailAlbumEmpty');
+    const pagControls = document.getElementById('album-pagination-controls');
     if (!grid) return;
 
     grid.innerHTML = '';
 
-    if (!mediaList || mediaList.length === 0) {
+    if (!this.currentAlbumMedia || this.currentAlbumMedia.length === 0) {
       if (empty) empty.classList.remove('hidden');
+      if (pagControls) pagControls.classList.add('hidden');
       return;
     }
 
     if (empty) empty.classList.add('hidden');
 
-    mediaList.forEach((item, index) => {
+    const totalItems = this.currentAlbumMedia.length;
+    const totalPages = Math.ceil(totalItems / this.itemsPerPage) || 1;
+
+    if (this.currentPage > totalPages) this.currentPage = totalPages;
+    if (this.currentPage < 1) this.currentPage = 1;
+
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = Math.min(startIndex + this.itemsPerPage, totalItems);
+    const pageItems = this.currentAlbumMedia.slice(startIndex, endIndex);
+
+    // Render cards untuk halaman saat ini
+    pageItems.forEach((item, index) => {
+      const globalIndex = startIndex + index;
       const isVideo = item.type === 'video';
       const delay = (index % 8) * 0.04;
 
       const card = document.createElement('div');
       card.className = 'media-card cursor-pointer animate-fadeInScale aspect-[3/4] sm:aspect-[4/5]';
-      card.style.animationDelay = `${delay}s`;
+      card.style.animationDelay = delay + 's';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
 
       card.onclick = () => {
-        ModalManager.open(item, index, this.currentAlbumMedia);
+        ModalManager.open(item, globalIndex, this.currentAlbumMedia);
       };
 
       card.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          ModalManager.open(item, index, this.currentAlbumMedia);
+          ModalManager.open(item, globalIndex, this.currentAlbumMedia);
         }
       };
 
       const thumbUrl = item.thumbnailUrl || 'icons/icon-512.png';
-      const notePreview = item.notes ? `<p class="text-[11px] text-rose-100/90 italic line-clamp-1 mt-0.5">“${item.notes}”</p>` : '';
+      const notePreview = item.notes ? ('<p class="text-[11px] text-rose-100/90 italic line-clamp-1 mt-0.5">“' + item.notes + '”</p>') : '';
 
-      card.innerHTML = `
-        <img 
-          src="${thumbUrl}" 
-          alt="${item.name}" 
-          loading="lazy" 
-          class="w-full h-full object-cover transition-transform duration-700 ease-out"
-          onerror="this.onerror=null; this.src='icons/icon-512.png'"
-        />
-
-        <div class="card-overlay absolute inset-0 flex flex-col justify-end p-3 sm:p-4 z-10">
-          <h3 class="text-white font-serif text-xs sm:text-sm md:text-base font-semibold truncate drop-shadow-md">
-            ${item.name}
-          </h3>
-          ${notePreview}
-          <div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1.5">
-            <span>${GalleryManager.formatShortDate(item.date || item.createdAt)}</span>
-            <span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">
-              ${isVideo ? 'Video' : 'Foto'}
-            </span>
-          </div>
-        </div>
-
-        ${isVideo ? `
-          <div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">
-            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white ml-[1px]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </div>
-        ` : ''}
-      `;
+      card.innerHTML = 
+        '<img src="' + thumbUrl + '" alt="' + item.name + '" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 ease-out" onerror="this.onerror=null; this.src=\'icons/icon-512.png\'" />' +
+        '<div class="card-overlay absolute inset-0 flex flex-col justify-end p-3 sm:p-4 z-10">' +
+          '<h3 class="text-white font-serif text-xs sm:text-sm md:text-base font-semibold truncate drop-shadow-md">' +
+            item.name +
+          '</h3>' +
+          notePreview +
+          '<div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1.5">' +
+            '<span>' + GalleryManager.formatShortDate(item.date || item.createdAt) + '</span>' +
+            '<span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">' +
+              (isVideo ? 'Video' : 'Foto') +
+            '</span>' +
+          '</div>' +
+        '</div>' +
+        (isVideo ? (
+          '<div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">' +
+            '<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white ml-[1px]" fill="currentColor" viewBox="0 0 24 24">' +
+              '<path d="M8 5v14l11-7z"/>' +
+            '</svg>' +
+          '</div>'
+        ) : '');
 
       grid.appendChild(card);
     });
+
+    this.renderPaginationUI(totalItems, totalPages, startIndex, endIndex);
+  },
+
+  renderPaginationUI(totalItems, totalPages, startIndex, endIndex) {
+    const pagControls = document.getElementById('album-pagination-controls');
+    if (!pagControls) return;
+
+    if (totalItems === 0) {
+      pagControls.classList.add('hidden');
+      return;
+    }
+
+    pagControls.classList.remove('hidden');
+
+    const startEl = document.getElementById('album-page-info-start');
+    const endEl = document.getElementById('album-page-info-end');
+    const totalEl = document.getElementById('album-page-info-total');
+
+    if (startEl) startEl.textContent = totalItems > 0 ? startIndex + 1 : 0;
+    if (endEl) endEl.textContent = endIndex;
+    if (totalEl) totalEl.textContent = totalItems;
+
+    const btnFirst = document.getElementById('btn-album-first-page');
+    const btnPrev = document.getElementById('btn-album-prev-page');
+    const btnNext = document.getElementById('btn-album-next-page');
+    const btnLast = document.getElementById('btn-album-last-page');
+    const numbersContainer = document.getElementById('album-page-numbers');
+
+    if (btnFirst) btnFirst.disabled = this.currentPage <= 1;
+    if (btnPrev) btnPrev.disabled = this.currentPage <= 1;
+    if (btnNext) btnNext.disabled = this.currentPage >= totalPages;
+    if (btnLast) btnLast.disabled = this.currentPage >= totalPages;
+
+    if (numbersContainer) {
+      numbersContainer.innerHTML = '';
+
+      if (totalPages > 1) {
+        let startPage = Math.max(1, this.currentPage - 2);
+        let endPage = Math.min(totalPages, this.currentPage + 2);
+
+        if (this.currentPage <= 2) {
+          endPage = Math.min(totalPages, 5);
+        }
+        if (this.currentPage >= totalPages - 1) {
+          startPage = Math.max(1, totalPages - 4);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          const btn = document.createElement('button');
+          btn.onclick = () => {
+            this.currentPage = i;
+            this.renderPaginatedMedia();
+            this.scrollToAlbumGrid();
+          };
+          btn.className = 'w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-xs sm:text-sm font-semibold transition-all ' + (
+            i === this.currentPage
+              ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 border border-brand-500 scale-105'
+              : 'bg-black/40 text-slate-400 border border-white/5 hover:border-brand-500/40 hover:text-white'
+          );
+          btn.textContent = i;
+          numbersContainer.appendChild(btn);
+        }
+      }
+    }
+  },
+
+  changePage(delta) {
+    const totalPages = Math.ceil(this.currentAlbumMedia.length / this.itemsPerPage) || 1;
+    this.currentPage = Math.max(1, Math.min(totalPages, this.currentPage + delta));
+    this.renderPaginatedMedia();
+    this.scrollToAlbumGrid();
+  },
+
+  goToPage(page) {
+    const totalPages = Math.ceil(this.currentAlbumMedia.length / this.itemsPerPage) || 1;
+    if (page === 'last') {
+      this.currentPage = totalPages;
+    } else {
+      this.currentPage = Math.max(1, Math.min(totalPages, parseInt(page, 10) || 1));
+    }
+    this.renderPaginatedMedia();
+    this.scrollToAlbumGrid();
+  },
+
+  setItemsPerPage(count) {
+    this.itemsPerPage = parseInt(count, 10) || 20;
+    this.currentPage = 1;
+    this.renderPaginatedMedia();
+    this.scrollToAlbumGrid();
+  },
+
+  scrollToAlbumGrid() {
+    const grid = document.getElementById('detailAlbumGrid');
+    if (grid) {
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   },
 
   /**
