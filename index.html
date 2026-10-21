@@ -518,67 +518,61 @@
     <section id="album-detail-page" class="page-section pb-12">
       
       <!-- Back Navigation & Actions -->
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
         
-        <!-- Baris 1: Tombol Kembali & Tombol Tambah Kenangan (di Mobile & Tablet) -->
-        <div class="flex items-center justify-between gap-2 w-full lg:w-auto">
+        <!-- Baris 1 di Mobile: Tombol Kembali & Aksi Cepat Edit/Hapus -->
+        <div class="flex items-center justify-between gap-2 w-full sm:w-auto">
           <button onclick="App.switchPage('albums')" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-slate-300 hover:text-white hover:bg-brand-900/40 text-xs sm:text-sm font-medium transition flex-shrink-0 active:scale-95">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <span><span class="hidden sm:inline">Semua </span>Album</span>
+            <span><span class="hidden xs:inline sm:inline">Semua </span>Album</span>
           </button>
 
-          <!-- Tombol Tambah Kenangan Utama (Hanya di Mobile & Tablet < lg) -->
-          <button onclick="AlbumsManager.openUploadForCurrentAlbum()" class="lg:hidden inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap flex-shrink-0 active:scale-95">
+          <!-- Edit & Hapus Cepat (Hanya di Mobile < sm) -->
+          <div class="flex sm:hidden items-center gap-1.5">
+            <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition whitespace-nowrap active:scale-95" title="Edit Judul & Catatan Album">
+              <svg class="w-3.5 h-3.5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              <span>Edit</span>
+            </button>
+            <button onclick="AlbumsManager.deleteAlbum()" class="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-rose-950/40 border border-rose-500/30 hover:bg-rose-600/80 text-rose-300 hover:text-white text-xs font-medium transition whitespace-nowrap active:scale-95" title="Hapus Album Secara Permanen">
+              <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <span>Hapus</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Baris Utama Aksi (Tambah Kenangan & Tanggal Foto berdampingan di kiri) -->
+        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 w-full sm:w-auto justify-start sm:justify-end">
+          
+          <!-- 1. Tambah Kenangan -->
+          <button onclick="AlbumsManager.openUploadForCurrentAlbum()" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap flex-shrink-0 active:scale-95">
             <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             <span>Tambah Kenangan</span>
           </button>
-        </div>
 
-        <!-- Baris 2 di Mobile/Tablet atau Sebelah Kanan di Desktop (lg+): Aksi Sekunder -->
-        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 w-full lg:w-auto justify-start sm:justify-end">
-          <button onclick="AlbumsManager.openPhotobookModal()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white text-xs font-semibold shadow-lg shadow-rose-950/40 transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Buka Photobook Majalah & Cetak PDF">
-            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            <span><span class="inline sm:hidden">Buku PDF</span><span class="hidden sm:inline">Buku Kenangan (PDF)</span></span>
-          </button>
-          <button onclick="AlbumsManager.syncAlbumDateToAllMedia()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-black/40 border border-white/10 hover:border-rose-500/40 text-slate-300 hover:text-white text-xs font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Samakan tanggal momen seluruh foto/video dengan tanggal momen album ini">
+          <!-- 2. Tanggal Foto (DI SEBELAH KANANNYA TAMBAH KENANGAN SESUAI PERMINTAAN) -->
+          <button onclick="AlbumsManager.syncAlbumDateToAllMedia()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-black/40 border border-white/10 hover:border-rose-500/40 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Samakan tanggal momen seluruh foto/video dengan tanggal momen album ini">
             <svg class="w-3.5 h-3.5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span><span class="inline sm:hidden">Tanggal Foto</span><span class="hidden sm:inline">Samakan Tanggal Foto</span></span>
+            <span><span class="hidden sm:inline">Samakan </span>Tanggal Foto</span>
           </button>
-          <button onclick="AlbumsManager.openEditModal()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Edit Judul & Catatan Album">
+
+          <!-- 3. Buku Kenangan (PDF) -->
+          <button onclick="AlbumsManager.openPhotobookModal()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white text-xs sm:text-sm font-semibold shadow-lg shadow-rose-950/40 transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Buka Photobook Majalah & Cetak PDF">
+            <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span><span class="inline sm:hidden">PDF</span><span class="hidden sm:inline">Buku Kenangan (PDF)</span></span>
+          </button>
+
+          <!-- 4. Edit Album (Hanya tampil di Tablet & Desktop sm+) -->
+          <button onclick="AlbumsManager.openEditModal()" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Edit Judul & Catatan Album">
             <svg class="w-3.5 h-3.5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-            <span><span class="inline sm:hidden">Edit</span><span class="hidden sm:inline">Edit Album</span></span>
+            <span>Edit Album</span>
           </button>
-          <button onclick="AlbumsManager.deleteAlbum()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-rose-950/40 border border-rose-500/30 hover:bg-rose-600/80 text-rose-300 hover:text-white text-xs font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Hapus Album & Semua Isinya Secara Permanen dari Google Drive">
+
+          <!-- 5. Hapus Album (Hanya tampil di Tablet & Desktop sm+) -->
+          <button onclick="AlbumsManager.deleteAlbum()" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-rose-950/40 border border-rose-500/30 hover:bg-rose-600/80 text-rose-300 hover:text-white text-xs sm:text-sm font-medium transition whitespace-nowrap flex-shrink-0 active:scale-95" title="Hapus Album & Semua Isinya Secara Permanen dari Google Drive">
             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            <span><span class="inline sm:hidden">Hapus</span><span class="hidden sm:inline">Hapus Album</span></span>
+            <span>Hapus Album</span>
           </button>
 
-          <!-- Tombol Tambah Kenangan (Hanya di Desktop lg+) -->
-          <button onclick="AlbumsManager.openUploadForCurrentAlbum()" class="hidden lg:inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap flex-shrink-0 active:scale-95">
-            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            <span>Tambah Kenangan</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Album Header Banner -->
-      <div class="relative w-full rounded-3xl overflow-hidden mb-8 glass-panel p-6 sm:p-10 shadow-2xl border border-brand-500/25">
-        <div id="detailAlbumBackdrop" class="absolute inset-0 bg-cover bg-center filter blur-xl scale-110 opacity-30 z-0"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-[#09060a] via-[#09060a]/80 to-transparent z-0"></div>
-
-        <div class="relative z-10 max-w-3xl">
-          <div class="flex flex-wrap items-center gap-2 text-[11px] text-rose-300 font-semibold mb-3">
-            <span id="detailAlbumCount" class="px-3 py-1 rounded-full bg-brand-950/80 border border-brand-500/30">0 Momen Tersimpan</span>
-            <span id="detailAlbumDate" class="text-slate-400"></span>
-          </div>
-
-          <h1 id="detailAlbumTitle" class="font-serif text-2xl sm:text-4xl font-bold text-white mb-3 drop-shadow-md">
-            Nama Album
-          </h1>
-
-          <div class="bg-black/30 backdrop-blur-sm p-4 sm:p-5 rounded-2xl border border-white/5">
-            <p id="detailAlbumDesc" class="font-serif italic text-xs sm:text-sm text-rose-100/90 leading-relaxed"></p>
-          </div>
         </div>
       </div>
 
@@ -878,7 +872,7 @@
     </button>
     
     <!-- Central Media Wrapper -->
-    <div id="modalContent" class="relative max-w-5xl w-full flex items-center justify-center scale-95 transition-transform duration-300">
+    <div id="modalContent" class="relative max-w-5xl w-full flex flex-col items-center justify-center scale-95 transition-transform duration-300 px-2 sm:px-0">
       <!-- Media dynamically injected here -->
     </div>
     

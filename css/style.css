@@ -187,31 +187,39 @@ body {
 /* Responsive Video Player Styling */
 .modal-video-card {
   width: 100%;
-  max-width: 56rem;
+  max-width: 52rem;
   aspect-ratio: 16 / 9;
-  max-height: 52vh;
+  max-height: 48vh;
   position: relative;
   border-radius: 1.25rem;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 25px rgba(225, 29, 72, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.95), 0 0 30px rgba(225, 29, 72, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.15);
   background-color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: auto;
+  margin: 0 auto;
 }
 
 @media (min-width: 640px) {
   .modal-video-card {
     border-radius: 1.5rem;
-    max-height: 64vh;
+    max-height: 60vh;
   }
 }
 
 @media (min-width: 1024px) {
   .modal-video-card {
-    max-height: 70vh;
+    max-height: 66vh;
+  }
+}
+
+/* Sembunyikan tombol panah samping di mobile saat video mode agar tidak menimpa kontrol player */
+@media (max-width: 640px) {
+  #lightboxModal.is-video-mode #modalBtnPrev,
+  #lightboxModal.is-video-mode #modalBtnNext {
+    display: none !important;
   }
 }
 

@@ -150,17 +150,24 @@ const ModalManager = {
     // Clear previous media
     content.innerHTML = '';
 
+    const modalEl = document.getElementById('lightboxModal');
+    const captionBar = document.getElementById('modalCaptionBar');
     const captionInner = document.getElementById('modalCaptionInner');
 
     if (item.type === 'photo') {
+      if (modalEl) modalEl.classList.remove('is-video-mode');
+      if (captionBar) captionBar.classList.remove('hidden');
       if (captionInner) captionInner.classList.remove('video-caption-compact');
+
       const img = document.createElement('img');
       img.src = item.highResUrl || item.viewUrl || item.thumbnailUrl;
       img.alt = item.name;
       img.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 animate-fadeInScale';
       content.appendChild(img);
     } else {
-      if (captionInner) captionInner.classList.add('video-caption-compact');
+      // Mode Video: Aktifkan mode bersih video & sembunyikan caption melayang yang menimpa Google Drive player
+      if (modalEl) modalEl.classList.add('is-video-mode');
+      if (captionBar) captionBar.classList.add('hidden');
 
       const videoWrapper = document.createElement('div');
       videoWrapper.className = 'modal-video-card animate-fadeInScale';
@@ -195,6 +202,38 @@ const ModalManager = {
 
       videoWrapper.appendChild(iframe);
       content.appendChild(videoWrapper);
+
+      // Info strip rapi di BAWAH pemutar video (tidak menimpa kontrol Google Drive sama sekali)
+      const formattedDate = this.formatDate(item.date || item.createdAt);
+      const albumBadgeHtml = item.album ? `<span class="px-2 py-0.5 rounded-full bg-brand-950 border border-brand-500/40 text-[10px] text-brand-300 font-semibold truncate max-w-[130px]">${item.album}</span>` : '';
+      const notesHtml = item.notes ? `<p class="font-serif italic text-xs sm:text-sm text-rose-100/90 leading-snug mt-1 line-clamp-2">“${item.notes}”</p>` : '';
+      const showNavArrows = this.currentList.length > 1;
+
+      const infoStrip = document.createElement('div');
+      infoStrip.className = 'video-info-strip w-full max-w-2xl mt-2.5 sm:mt-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 text-center shadow-2xl animate-fadeInScale';
+      infoStrip.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          ${showNavArrows ? `
+            <button onclick="ModalManager.prev()" class="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition active:scale-90 flex-shrink-0" title="Sebelumnya">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+          ` : '<div></div>'}
+          <div class="flex-1 min-w-0 px-1">
+            <div class="flex items-center justify-center gap-1.5 flex-wrap">
+              ${albumBadgeHtml}
+              <h4 class="text-white font-serif text-xs sm:text-sm md:text-base font-semibold truncate max-w-[220px] sm:max-w-md">${item.name}</h4>
+            </div>
+            ${notesHtml}
+            <p class="text-[10px] sm:text-[11px] text-rose-200/60 mt-0.5">${formattedDate}</p>
+          </div>
+          ${showNavArrows ? `
+            <button onclick="ModalManager.next()" class="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition active:scale-90 flex-shrink-0" title="Berikutnya">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          ` : '<div></div>'}
+        </div>
+      `;
+      content.appendChild(infoStrip);
     }
 
     // Update Prev/Next button states
@@ -231,6 +270,10 @@ const ModalManager = {
     if (content) content.classList.add('scale-95');
     const captionInner = document.getElementById('modalCaptionInner');
     if (captionInner) captionInner.classList.remove('video-caption-compact');
+    const modalEl = document.getElementById('lightboxModal');
+    if (modalEl) modalEl.classList.remove('is-video-mode');
+    const captionBar = document.getElementById('modalCaptionBar');
+    if (captionBar) captionBar.classList.remove('hidden');
 
     // Stop active video / iframe playback
     if (content) {
