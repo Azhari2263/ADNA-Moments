@@ -156,9 +156,11 @@ function doGet(e) {
         }
       }
 
-      // Urutkan album terbaru berdasarkan tanggal dibuat
+      // Urutkan album terbaru berdasarkan tanggal momen atau tanggal dibuat
       albumsList.sort(function(a, b) {
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        const dateA = a.date ? new Date(a.date).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.date ? new Date(b.date).getTime() : new Date(b.createdAt).getTime();
+        return dateB - dateA;
       });
 
       return createJsonResponse({
@@ -522,12 +524,13 @@ function doPost(e) {
     }
 
     // ========================================================
-    // AKSI 4: EDIT INFORMASI ALBUM
+    // AKSI 4: EDIT INFORMASI ALBUM (JUDUL, CATATAN & TANGGAL MOMEN)
     // ========================================================
     if (action === "update_album") {
       const albumId = payload.albumId;
       const newTitle = (payload.title || "").trim();
       const newDesc = payload.description !== undefined ? String(payload.description).trim() : null;
+      const newDate = (payload.date || "").trim();
 
       if (!albumId) throw new Error("ID Album tidak disertakan.");
 
@@ -537,9 +540,22 @@ function doPost(e) {
       if (newTitle && newTitle !== albumFolder.getName()) {
         albumFolder.setName(newTitle);
       }
-      if (newDesc !== null) {
-        albumFolder.setDescription(newDesc);
+
+      const existingDesc = albumFolder.getDescription() || "";
+      let existingNotes = existingDesc;
+      let existingDate = "";
+      const dMatch = existingDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+      if (dMatch) {
+        existingDate = dMatch[1];
+        existingNotes = existingDesc.substring(dMatch[0].length);
       }
+      const notesToSave = newDesc !== null ? newDesc : existingNotes;
+      const dateToSave = newDate || existingDate;
+      let fullDesc = notesToSave;
+      if (dateToSave) {
+        fullDesc = "[DATE:" + dateToSave + "] " + notesToSave;
+      }
+      albumFolder.setDescription(fullDesc);
 
       return createJsonResponse({
         status: "success",
@@ -547,8 +563,104 @@ function doPost(e) {
         data: {
           id: albumFolder.getId(),
           title: albumFolder.getName(),
-          description: albumFolder.getDescription() || ""
+          description: notesToSave,
+          date: dateToSave
         }
+      });
+    }
+
+    // ========================================================
+    // AKSI: HAPUS FOTO / MEDIA SECARA PERMANEN DARI GOOGLE DRIVE
+    // ========================================================
+    if (action === "delete_media") {
+      const fileIds = payload.fileIds || (payload.fileId ? [payload.fileId] : []);
+      if (!fileIds.length) throw new Error("ID File tidak disertakan.");
+
+      let deletedCount = 0;
+      for (let i = 0; i < fileIds.length; i++) {
+        const fid = String(fileIds[i]).trim();
+        if (fid) {
+          try {
+            permanentlyDeleteDriveFile(fid);
+            deletedCount++;
+          } catch (err) {
+            console.warn("Gagal menghapus file: " + fid, err);
+          }
+        }
+      }
+
+      // Bersihkan referensi bukti foto di BucketList jika ada
+      try {
+        const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+        const sheet = ss.getSheetByName("BucketList");
+        if (sheet) {
+          const data = sheet.getDataRange().getValues();
+          if (data.length > 1) {
+            const headers = data[0].map(function(h) { return String(h).trim(); });
+            const photoIdCol = headers.indexOf("photoId");
+            const photoUrlCol = headers.indexOf("photoUrl");
+            if (photoIdCol >= 0 && photoUrlCol >= 0) {
+              for (let r = 1; r < data.length; r++) {
+                const rowPhotoId = String(data[r][photoIdCol]).trim();
+                if (fileIds.indexOf(rowPhotoId) !== -1) {
+                  sheet.getRange(r + 1, photoIdCol + 1).setValue("");
+                  sheet.getRange(r + 1, photoUrlCol + 1).setValue("");
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Gagal update BucketList sheet saat hapus file:", e);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: deletedCount + " file kenangan berhasil dihapus secara permanen dari Google Drive.",
+        count: deletedCount
+      });
+    }
+
+    // ========================================================
+    // AKSI: HAPUS ALBUM BESERTA SEMUA ISINYA SECARA PERMANEN
+    // ========================================================
+    if (action === "delete_album") {
+      const albumId = String(payload.albumId || "").trim();
+      if (!albumId) throw new Error("ID Album tidak disertakan.");
+
+      let albumName = "Album";
+      try {
+        const af = DriveApp.getFolderById(albumId);
+        albumName = af.getName();
+      } catch (e) {}
+
+      permanentlyDeleteDriveFolder(albumId);
+
+      // Bersihkan referensi albumId di BucketList jika ada
+      try {
+        const ss = getOrCreateDatabaseSpreadsheet(rootFolder);
+        const sheet = ss.getSheetByName("BucketList");
+        if (sheet) {
+          const data = sheet.getDataRange().getValues();
+          if (data.length > 1) {
+            const headers = data[0].map(function(h) { return String(h).trim(); });
+            const albumIdCol = headers.indexOf("albumId");
+            if (albumIdCol >= 0) {
+              for (let r = 1; r < data.length; r++) {
+                if (String(data[r][albumIdCol]).trim() === albumId) {
+                  sheet.getRange(r + 1, albumIdCol + 1).setValue("");
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Gagal update BucketList sheet saat hapus album:", e);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Album '" + albumName + "' dan seluruh file di dalamnya berhasil dihapus secara permanen dari Google Drive."
       });
     }
 
@@ -1086,4 +1198,52 @@ function getSheetRecords(sheet) {
   });
 
   return records;
+}
+
+/**
+ * Menghapus file secara permanen dari Google Drive
+ */
+function permanentlyDeleteDriveFile(fileId) {
+  try {
+    if (typeof Drive !== "undefined" && Drive.Files && typeof Drive.Files.remove === "function") {
+      Drive.Files.remove(fileId);
+      return;
+    }
+  } catch (err) {
+    console.warn("Drive.Files.remove gagal, menggunakan setTrashed: " + err);
+  }
+  const file = DriveApp.getFileById(fileId);
+  file.setTrashed(true);
+}
+
+/**
+ * Menghapus folder album dan seluruh file di dalamnya secara permanen
+ */
+function permanentlyDeleteDriveFolder(folderId) {
+  const folder = DriveApp.getFolderById(folderId);
+
+  // 1. Hapus seluruh file di dalam folder secara permanen
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    permanentlyDeleteDriveFile(f.getId());
+  }
+
+  // 2. Hapus subfolder jika ada
+  const subfolders = folder.getFolders();
+  while (subfolders.hasNext()) {
+    const sf = subfolders.next();
+    permanentlyDeleteDriveFolder(sf.getId());
+  }
+
+  // 3. Hapus folder itu sendiri
+  try {
+    if (typeof Drive !== "undefined" && Drive.Files && typeof Drive.Files.remove === "function") {
+      Drive.Files.remove(folderId);
+      return;
+    }
+  } catch (err) {
+    console.warn("Drive.Files.remove folder gagal, menggunakan setTrashed: " + err);
+  }
+  folder.setTrashed(true);
 }

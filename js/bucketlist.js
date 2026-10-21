@@ -216,7 +216,14 @@ const BucketListManager = {
                 <span>📖 Buka Album Kenangan</span>
               </button>
             </div>
-          ` : ''}
+          ` : (isDone && !item.albumId ? `
+            <div class="mt-1 mb-3">
+              <button onclick="BucketListManager.openFulfillModal('${item.id}')" class="w-full py-2 px-3 rounded-xl border border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-950/20 text-amber-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Buat Album Kenangan</span>
+              </button>
+            </div>
+          ` : '')}
         </div>
 
         <!-- Footer Card -->
@@ -316,9 +323,24 @@ const BucketListManager = {
 
     if (titleEl) titleEl.textContent = item.title;
 
-    // Default tanggal terwujud = hari ini (YYYY-MM-DD)
+    // Default tanggal momen: mengikuti tanggal impian yang dipilih jika ada, jika tidak default hari ini
     const todayStr = new Date().toISOString().split('T')[0];
-    if (dateInput) dateInput.value = todayStr;
+    let defaultMomentDate = '';
+    if (item.targetDate) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.targetDate)) {
+        defaultMomentDate = item.targetDate;
+      } else {
+        const d = new Date(item.targetDate);
+        if (!isNaN(d.getTime())) {
+          defaultMomentDate = d.toISOString().split('T')[0];
+        }
+      }
+    } else if (item.completedDate) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.completedDate)) {
+        defaultMomentDate = item.completedDate;
+      }
+    }
+    if (dateInput) dateInput.value = defaultMomentDate || todayStr;
 
     // Default nama album = nama impian
     if (albumTitleInput) albumTitleInput.value = item.title;

@@ -536,6 +536,67 @@ const GalleryManager = {
     }
   },
 
+  /**
+   * Menghapus batch momen terpilih secara permanen dari Google Drive
+   */
+  async deleteSelectedMedia() {
+    if (this.selectedIds.size === 0) {
+      App.showToast('Pilih setidaknya satu momen untuk dihapus.', 'warning');
+      return;
+    }
+
+    const count = this.selectedIds.size;
+    const confirmMsg = `Hapus permanen ${count} foto/video terpilih dari Google Drive?\n\nFile terkait akan dihapus secara permanen dan tidak dapat dipulihkan kembali.`;
+    if (!confirm(confirmMsg)) return;
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    App.showToast(`Menghapus ${count} file dari Google Drive...`, 'info');
+
+    try {
+      const fileIdsToDelete = Array.from(this.selectedIds);
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete_media',
+          fileIds: fileIdsToDelete
+        })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        App.showToast(data.message || `${count} momen berhasil dihapus secara permanen.`, 'success');
+        
+        // Hapus dari allMedia lokal
+        this.allMedia = this.allMedia.filter(m => !fileIdsToDelete.includes(m.id));
+        this.toggleSelectMode(false);
+        this.applyFilters();
+
+        if (window.AlbumsManager) AlbumsManager.fetchAlbums();
+        if (window.BucketListManager && BucketListManager.items) {
+          BucketListManager.items.forEach(b => {
+            if (fileIdsToDelete.includes(b.photoId)) {
+              b.photoId = '';
+              b.photoUrl = '';
+            }
+          });
+          BucketListManager.saveToCache();
+          BucketListManager.render();
+        }
+      } else {
+        App.showToast(data.message || 'Gagal menghapus file terpilih.', 'error');
+      }
+    } catch (e) {
+      console.error('Delete Selected Media Error:', e);
+      App.showToast('Gagal menghubungi server.', 'error');
+    }
+  },
+
   formatShortDate(isoString) {
     if (!isoString) return '';
     try {

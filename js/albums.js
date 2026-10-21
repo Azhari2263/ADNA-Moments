@@ -149,8 +149,8 @@ const AlbumsManager = {
       };
 
       const coverSrc = album.coverUrl || 'icons/icon-512.png';
-      const formattedDate = this.formatDate(album.createdAt);
-      const timeBadge = album.year ? `${album.year} • ${album.month || ''}` : formattedDate;
+      const momentDate = album.date ? this.formatDate(album.date) : this.formatDate(album.createdAt);
+      const timeBadge = album.date ? this.formatDate(album.date) : (album.year ? `${album.year} • ${album.month || ''}` : momentDate);
 
       card.innerHTML = `
         <div class="relative w-full aspect-[4/3] overflow-hidden bg-black/60">
@@ -163,6 +163,17 @@ const AlbumsManager = {
           />
           <div class="absolute inset-0 bg-gradient-to-t from-[#09060a] via-black/30 to-transparent"></div>
           
+          <!-- Tombol Hapus Album di Kartu -->
+          <div class="absolute top-3 left-3 z-20">
+            <button 
+              type="button" 
+              onclick="event.stopPropagation(); AlbumsManager.deleteAlbum('${album.id}', '${album.title.replace(/'/g, "\\'")}')" 
+              class="p-2 rounded-full bg-black/60 hover:bg-rose-600 text-rose-300 hover:text-white backdrop-blur-md transition border border-white/10 shadow-lg" 
+              title="Hapus Album '${album.title}' secara permanen">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+
           <!-- Badges -->
           <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] text-rose-200">
             <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -186,7 +197,7 @@ const AlbumsManager = {
           </div>
 
           <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Dibuat ${formattedDate}</span>
+            <span>Tanggal Momen: <strong class="text-rose-200 font-medium">${momentDate}</strong></span>
             <span class="text-brand-400 font-semibold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
               Buka <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </span>
@@ -218,7 +229,7 @@ const AlbumsManager = {
     if (titleEl) titleEl.textContent = album.title;
     if (descEl) descEl.textContent = album.description ? `“${album.description}”` : 'Belum ada catatan pengantar untuk album ini.';
     if (dateEl) {
-      const loc = album.year ? `${album.year} • ${album.month || ''}` : this.formatDate(album.createdAt);
+      const loc = album.date ? `Tanggal Momen: ${this.formatDate(album.date)}` : (album.year ? `${album.year} • ${album.month || ''}` : this.formatDate(album.createdAt));
       dateEl.textContent = loc;
     }
     if (countEl) countEl.textContent = `${album.totalCount || 0} Momen Tersimpan`;
@@ -346,18 +357,20 @@ const AlbumsManager = {
   /**
    * Modal Pembuatan Album Baru (dengan Pemilih Foto Galeri & Upload Baru)
    */
-  openCreateModal() {
+  openCreateModal(defaultDate = null, defaultTitle = null) {
     const modal = document.getElementById('albumFormModal');
     const modalTitle = document.getElementById('albumModalHeading');
     const titleInput = document.getElementById('albumTitleInput');
     const descInput = document.getElementById('albumDescInput');
     const editModeInput = document.getElementById('albumIsEditMode');
     const timelineSection = document.getElementById('albumTimelineSelects');
+    const yearMonthRow = document.getElementById('albumYearMonthRow');
     const mediaPickerSection = document.getElementById('albumMediaPickerSection');
+    const deleteBtn = document.getElementById('deleteAlbumInEditBtn');
 
     if (modalTitle) modalTitle.textContent = 'Buat Album Kenangan Baru';
     if (editModeInput) editModeInput.value = 'create';
-    if (titleInput) titleInput.value = '';
+    if (titleInput) titleInput.value = defaultTitle || '';
     if (descInput) descInput.value = '';
 
     // Reset pilihan foto
@@ -367,9 +380,11 @@ const AlbumsManager = {
 
     // Tampilkan pemilihan timeline & media picker di mode create
     if (timelineSection) timelineSection.classList.remove('hidden');
+    if (yearMonthRow) yearMonthRow.classList.remove('hidden');
     if (mediaPickerSection) mediaPickerSection.classList.remove('hidden');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
 
-    this.populateTimelineSelects();
+    this.populateTimelineSelects(defaultDate);
     this.switchPickerTab('gallery');
     this.renderPickerGallery();
 
@@ -383,28 +398,29 @@ const AlbumsManager = {
   },
 
   /**
-   * Mengisi pilihan Tahun & Bulan untuk folder album
+   * Mengisi pilihan Tanggal Momen, Tahun & Bulan untuk folder album
    */
-  populateTimelineSelects() {
+  populateTimelineSelects(defaultDate = null) {
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = String(now.getMonth() + 1).padStart(2, '0');
     const todayStr = `${curYear}-${curMonth}-${String(now.getDate()).padStart(2, '0')}`;
+    const initialDate = defaultDate || todayStr;
 
     const dateInput = document.getElementById('albumDateInput');
     const yearSelect = document.getElementById('albumYearInput');
     const monthSelect = document.getElementById('albumMonthInput');
 
     if (dateInput) {
-      if (!dateInput.value) dateInput.value = todayStr;
-      dateInput.addEventListener('change', () => {
+      dateInput.value = initialDate;
+      dateInput.onchange = () => {
         const val = dateInput.value;
         if (val) {
           const [y, m] = val.split('-');
           if (yearSelect) yearSelect.value = y;
           if (monthSelect) monthSelect.value = m;
         }
-      });
+      };
     }
 
     if (yearSelect) {
@@ -418,7 +434,13 @@ const AlbumsManager = {
       }
     }
 
-    if (monthSelect) {
+    if (initialDate) {
+      const parts = initialDate.split('-');
+      if (parts.length >= 2) {
+        if (yearSelect) yearSelect.value = parts[0];
+        if (monthSelect) monthSelect.value = parts[1];
+      }
+    } else if (monthSelect) {
       monthSelect.value = curMonth;
     }
   },
@@ -551,16 +573,25 @@ const AlbumsManager = {
     const descInput = document.getElementById('albumDescInput');
     const editModeInput = document.getElementById('albumIsEditMode');
     const timelineSection = document.getElementById('albumTimelineSelects');
+    const yearMonthRow = document.getElementById('albumYearMonthRow');
     const mediaPickerSection = document.getElementById('albumMediaPickerSection');
+    const deleteBtn = document.getElementById('deleteAlbumInEditBtn');
+    const dateInput = document.getElementById('albumDateInput');
 
     if (modalTitle) modalTitle.textContent = 'Edit Informasi Album';
     if (editModeInput) editModeInput.value = 'edit';
     if (titleInput) titleInput.value = this.currentAlbum.title || '';
     if (descInput) descInput.value = this.currentAlbum.description || '';
 
-    // Sembunyikan pemilihan media saat hanya mengedit info album
-    if (timelineSection) timelineSection.classList.add('hidden');
+    // Tanggal Momen tetap dapat diatur saat edit album
+    const curDate = this.currentAlbum.date || (this.currentAlbum.createdAt ? this.currentAlbum.createdAt.split('T')[0] : '');
+    if (dateInput) dateInput.value = curDate;
+
+    // Tampilkan bagian tanggal momen tetapi sembunyikan pemilihan folder tahun/bulan dan media picker saat edit info
+    if (timelineSection) timelineSection.classList.remove('hidden');
+    if (yearMonthRow) yearMonthRow.classList.add('hidden');
     if (mediaPickerSection) mediaPickerSection.classList.add('hidden');
+    if (deleteBtn) deleteBtn.classList.remove('hidden');
 
     if (modal) {
       modal.classList.remove('hidden');
@@ -665,10 +696,15 @@ const AlbumsManager = {
         if (isEdit && this.currentAlbum) {
           this.currentAlbum.title = title;
           this.currentAlbum.description = desc;
+          this.currentAlbum.date = dateVal;
           const detailTitle = document.getElementById('detailAlbumTitle');
           const detailDesc = document.getElementById('detailAlbumDesc');
+          const detailDate = document.getElementById('detailAlbumDate');
           if (detailTitle) detailTitle.textContent = title;
           if (detailDesc) detailDesc.textContent = desc ? `“${desc}”` : '';
+          if (detailDate) {
+            detailDate.textContent = dateVal ? `Tanggal Momen: ${this.formatDate(dateVal)}` : (this.currentAlbum.year ? `${this.currentAlbum.year} • ${this.currentAlbum.month || ''}` : this.formatDate(this.currentAlbum.createdAt));
+          }
         }
 
         await this.fetchAlbums();
@@ -684,6 +720,68 @@ const AlbumsManager = {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Simpan Album';
       }
+    }
+  },
+
+  /**
+   * Menghapus album beserta seluruh isinya secara permanen dari Google Drive
+   */
+  async deleteAlbum(albumId = null, albumTitle = null) {
+    const targetAlbum = albumId ? this.allAlbums.find(a => a.id === albumId) : this.currentAlbum;
+    const id = albumId || (targetAlbum ? targetAlbum.id : null);
+    const title = albumTitle || (targetAlbum ? targetAlbum.title : 'Album Kenangan');
+
+    if (!id) {
+      App.showToast('ID Album tidak ditemukan.', 'error');
+      return;
+    }
+
+    const confirmMsg = `Hapus album "${title}" secara permanen dari Google Drive?\n\nPERINGATAN: Seluruh foto dan video di dalam folder album ini juga akan dihapus secara permanen dari Google Drive dan tidak dapat dipulihkan.`;
+    if (!confirm(confirmMsg)) return;
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    App.showToast(`Menghapus album "${title}" dari Google Drive...`, 'info');
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete_album',
+          albumId: id
+        })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        App.showToast(data.message || `Album "${title}" berhasil dihapus permanen dari Google Drive.`, 'success');
+        
+        this.closeModal();
+
+        // Hapus dari allAlbums lokal
+        this.allAlbums = this.allAlbums.filter(a => a.id !== id);
+
+        // Jika sedang membuka album yang dihapus di halaman detail, kembalikan ke halaman daftar album
+        if (this.currentAlbum && this.currentAlbum.id === id) {
+          this.currentAlbum = null;
+          this.currentAlbumMedia = [];
+          App.switchPage('albums');
+        }
+
+        await this.fetchAlbums();
+        if (window.GalleryManager) GalleryManager.fetchGallery();
+        if (window.BucketListManager) BucketListManager.fetchFromCloud();
+      } else {
+        App.showToast(data.message || 'Gagal menghapus album dari Google Drive.', 'error');
+      }
+    } catch (e) {
+      console.error('Delete Album Error:', e);
+      App.showToast('Gagal menghubungi server Google Drive.', 'error');
     }
   },
 
@@ -847,6 +945,16 @@ const AlbumsManager = {
   formatDate(isoString) {
     if (!isoString) return '';
     try {
+      const cleanStr = String(isoString).split('T')[0];
+      const parts = cleanStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        return d.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
       const date = new Date(isoString);
       return date.toLocaleDateString('id-ID', {
         day: 'numeric',
@@ -854,7 +962,7 @@ const AlbumsManager = {
         year: 'numeric'
       });
     } catch {
-      return '';
+      return isoString;
     }
   }
 };

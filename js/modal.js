@@ -11,6 +11,22 @@ const ModalManager = {
   touchStartX: 0,
   touchStartY: 0,
 
+  // Auto-slide: Dinonaktifkan untuk sementara sesuai kebutuhan
+  isAutoSlideEnabled: false,
+  autoSlideInterval: null,
+
+  startAutoSlide() {
+    // Fitur auto-slide dinonaktifkan sementara
+    return;
+  },
+
+  stopAutoSlide() {
+    if (this.autoSlideInterval) {
+      clearInterval(this.autoSlideInterval);
+      this.autoSlideInterval = null;
+    }
+  },
+
   init() {
     // Bind Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
@@ -64,6 +80,7 @@ const ModalManager = {
   },
 
   open(item, index = 0, list = []) {
+    this.stopAutoSlide();
     this.currentList = list && list.length ? list : [item];
     this.currentIndex = index >= 0 ? index : this.currentList.findIndex(i => i.id === item.id);
     if (this.currentIndex === -1) this.currentIndex = 0;
@@ -143,7 +160,7 @@ const ModalManager = {
       const video = document.createElement('video');
       video.src = item.streamUrl;
       video.controls = true;
-      video.autoplay = true;
+      video.autoplay = false; // Nonaktifkan auto-play/auto-slide sementara
       video.playsInline = true;
       video.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] w-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
       
@@ -159,18 +176,21 @@ const ModalManager = {
   },
 
   next() {
+    this.stopAutoSlide();
     if (!this.currentList.length) return;
     this.currentIndex = (this.currentIndex + 1) % this.currentList.length;
     this.renderCurrent();
   },
 
   prev() {
+    this.stopAutoSlide();
     if (!this.currentList.length) return;
     this.currentIndex = (this.currentIndex - 1 + this.currentList.length) % this.currentList.length;
     this.renderCurrent();
   },
 
   close() {
+    this.stopAutoSlide();
     const modal = document.getElementById('mediaModal');
     const content = document.getElementById('modalContent');
     if (!modal) return;
@@ -351,6 +371,93 @@ const ModalManager = {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Simpan Perubahan';
       }
+    }
+  },
+
+  /**
+   * Menghapus foto/video saat ini secara permanen dari Google Drive
+   */
+  async deleteCurrentMedia() {
+    const item = this.currentList[this.currentIndex];
+    if (!item) return;
+
+    const confirmMsg = `Hapus permanen "${item.name}" dari Google Drive?\n\nFile terkait akan dihapus secara permanen dan tidak dapat dipulihkan kembali.`;
+    if (!confirm(confirmMsg)) return;
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    App.showToast('Menghapus kenangan dari Google Drive...', 'info');
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete_media',
+          fileId: item.id
+        })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        App.showToast('Kenangan berhasil dihapus secara permanen dari Google Drive.', 'success');
+        
+        // Tutup modal edit jika terbuka
+        this.closeEditModal();
+
+        const deletedId = item.id;
+
+        // Hapus dari antrean lokal modal
+        this.currentList.splice(this.currentIndex, 1);
+
+        // Hapus dari data GalleryManager
+        if (window.GalleryManager && GalleryManager.allMedia) {
+          GalleryManager.allMedia = GalleryManager.allMedia.filter(m => m.id !== deletedId);
+          GalleryManager.applyFilters();
+        }
+
+        // Hapus dari data AlbumsManager jika sedang dalam album
+        if (window.AlbumsManager) {
+          if (AlbumsManager.currentAlbumMedia) {
+            AlbumsManager.currentAlbumMedia = AlbumsManager.currentAlbumMedia.filter(m => m.id !== deletedId);
+            AlbumsManager.renderAlbumMedia(AlbumsManager.currentAlbumMedia);
+            const countEl = document.getElementById('detailAlbumCount');
+            if (countEl) countEl.textContent = `${AlbumsManager.currentAlbumMedia.length} Momen Tersimpan`;
+          }
+          AlbumsManager.fetchAlbums();
+        }
+
+        // Sinkronisasi dengan BucketList
+        if (window.BucketListManager && BucketListManager.items) {
+          BucketListManager.items.forEach(b => {
+            if (b.photoId === deletedId) {
+              b.photoId = '';
+              b.photoUrl = '';
+            }
+          });
+          BucketListManager.saveToCache();
+          BucketListManager.render();
+        }
+
+        // Jika semua item habis, tutup modal; jika ada sisa, render berikutnya
+        if (this.currentList.length === 0) {
+          this.close();
+        } else {
+          if (this.currentIndex >= this.currentList.length) {
+            this.currentIndex = this.currentList.length - 1;
+          }
+          this.renderCurrent();
+        }
+      } else {
+        App.showToast(data.message || 'Gagal menghapus file dari Google Drive.', 'error');
+      }
+    } catch (e) {
+      console.error('Delete Media Error:', e);
+      App.showToast('Gagal menghubungi server Google Drive.', 'error');
     }
   },
 
