@@ -235,6 +235,62 @@ body {
   }
 }
 
+/* Netflix-style Highlight Slideshow Styles */
+.highlight-slide-bg {
+  animation: kenBurns 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes kenBurns {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.highlight-bar {
+  width: 1.5rem;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .highlight-bar {
+    width: 2rem;
+  }
+}
+
+.highlight-bar.active {
+  width: 2.75rem;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@media (min-width: 640px) {
+  .highlight-bar.active {
+    width: 3.5rem;
+  }
+}
+
+.highlight-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e11d48, #f43f5e);
+  width: 0%;
+  border-radius: 9999px;
+}
+
+.highlight-bar.active .highlight-bar-fill {
+  animation: highlightProgress 5s linear forwards;
+}
+
+@keyframes highlightProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
 /* Toast Notifications */
 .toast-enter {
   transform: translateY(100%) scale(0.95);

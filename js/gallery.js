@@ -12,8 +12,14 @@ const GalleryManager = {
   searchQuery: '',
   sortBy: 'newest',
   currentPage: 1,
-  itemsPerPage: 16,
+  itemsPerPage: 12, // Default 12 momen per halaman untuk performa ringan
   isLoading: false,
+
+  // Netflix-style Highlight Slideshow
+  highlightItems: [],
+  currentHighlightIndex: 0,
+  highlightTimer: null,
+  isHighlightHovered: false,
 
   // Batch Select Mode untuk assign ke album
   isSelectMode: false,
@@ -22,6 +28,7 @@ const GalleryManager = {
   init() {
     this.populateYearOptions();
     this.bindEvents();
+    this.bindHighlightEvents();
     this.fetchGallery();
   },
 
@@ -129,6 +136,7 @@ const GalleryManager = {
         const years = this.allMedia.map(item => item.year).filter(Boolean);
         this.populateYearOptions(years);
 
+        this.initHighlights();
         this.applyFilters();
       } else {
         App.showToast(result.message || 'Gagal mengambil galeri', 'error');
@@ -309,62 +317,309 @@ const GalleryManager = {
 
   renderPaginationUI(totalItems, totalPages, startIndex, endIndex) {
     const pagControls = document.getElementById('pagination-controls');
-    if (totalPages <= 1) {
+    if (!pagControls) return;
+
+    if (totalItems === 0) {
       pagControls.classList.add('hidden');
       return;
     }
 
     pagControls.classList.remove('hidden');
-    document.getElementById('page-info-start').textContent = startIndex + 1;
-    document.getElementById('page-info-end').textContent = endIndex;
-    document.getElementById('page-info-total').textContent = totalItems;
 
+    const startEl = document.getElementById('page-info-start');
+    const endEl = document.getElementById('page-info-end');
+    const totalEl = document.getElementById('page-info-total');
+    if (startEl) startEl.textContent = totalItems > 0 ? startIndex + 1 : 0;
+    if (endEl) endEl.textContent = endIndex;
+    if (totalEl) totalEl.textContent = totalItems;
+
+    const btnFirst = document.getElementById('btn-first-page');
+    const btnLast = document.getElementById('btn-last-page');
     const btnPrev = document.getElementById('btn-prev-page');
     const btnNext = document.getElementById('btn-next-page');
     const numbersContainer = document.getElementById('page-numbers');
 
-    btnPrev.disabled = this.currentPage === 1;
-    btnNext.disabled = this.currentPage === totalPages;
+    if (btnFirst) btnFirst.disabled = this.currentPage <= 1;
+    if (btnPrev) btnPrev.disabled = this.currentPage <= 1;
+    if (btnNext) btnNext.disabled = this.currentPage >= totalPages;
+    if (btnLast) btnLast.disabled = this.currentPage >= totalPages;
 
-    numbersContainer.innerHTML = '';
+    if (numbersContainer) {
+      numbersContainer.innerHTML = '';
 
-    // Sliding window for page numbers (max 5 buttons)
-    let startPage = Math.max(1, this.currentPage - 2);
-    let endPage = Math.min(totalPages, this.currentPage + 2);
+      if (totalPages > 1) {
+        let startPage = Math.max(1, this.currentPage - 2);
+        let endPage = Math.min(totalPages, this.currentPage + 2);
 
-    if (this.currentPage <= 2) {
-      endPage = Math.min(totalPages, 5);
-    }
-    if (this.currentPage >= totalPages - 1) {
-      startPage = Math.max(1, totalPages - 4);
-    }
+        if (this.currentPage <= 2) {
+          endPage = Math.min(totalPages, 5);
+        }
+        if (this.currentPage >= totalPages - 1) {
+          startPage = Math.max(1, totalPages - 4);
+        }
 
-    for (let i = startPage; i <= endPage; i++) {
-      const btn = document.createElement('button');
-      btn.onclick = () => {
-        this.currentPage = i;
-        this.renderPaginated();
-        this.scrollToGallery();
-      };
-      btn.className = `w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-        i === this.currentPage
-          ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 border border-brand-500'
-          : 'bg-black/40 text-slate-400 border border-white/5 hover:border-brand-500/40 hover:text-white'
-      }`;
-      btn.textContent = i;
-      numbersContainer.appendChild(btn);
+        for (let i = startPage; i <= endPage; i++) {
+          const btn = document.createElement('button');
+          btn.onclick = () => {
+            this.currentPage = i;
+            this.renderPaginated();
+            this.scrollToGallery();
+          };
+          btn.className = `w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            i === this.currentPage
+              ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 border border-brand-500 scale-105'
+              : 'bg-black/40 text-slate-400 border border-white/5 hover:border-brand-500/40 hover:text-white'
+          }`;
+          btn.textContent = i;
+          numbersContainer.appendChild(btn);
+        }
+      }
     }
   },
 
   changePage(delta) {
-    this.currentPage += delta;
+    const totalPages = Math.ceil(this.filteredMedia.length / this.itemsPerPage) || 1;
+    this.currentPage = Math.max(1, Math.min(totalPages, this.currentPage + delta));
+    this.renderPaginated();
+    this.scrollToGallery();
+  },
+
+  goToPage(page) {
+    const totalPages = Math.ceil(this.filteredMedia.length / this.itemsPerPage) || 1;
+    if (page === 'last') {
+      this.currentPage = totalPages;
+    } else {
+      this.currentPage = Math.max(1, Math.min(totalPages, parseInt(page, 10) || 1));
+    }
+    this.renderPaginated();
+    this.scrollToGallery();
+  },
+
+  setItemsPerPage(count) {
+    this.itemsPerPage = parseInt(count, 10) || 12;
+    this.currentPage = 1;
     this.renderPaginated();
     this.scrollToGallery();
   },
 
   scrollToGallery() {
-    const el = document.getElementById('gallery-page');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    const grid = document.getElementById('gallery-grid');
+    if (grid) {
+      const topOffset = grid.getBoundingClientRect().top + window.pageYOffset - 90;
+      window.scrollTo({ top: Math.max(0, topOffset), behavior: 'smooth' });
+    }
+  },
+
+  /* ====================================================
+   * NETFLIX-STYLE HIGHLIGHT SPOTLIGHT SLIDESHOW
+   * ==================================================== */
+  initHighlights() {
+    if (!this.allMedia || this.allMedia.length === 0) {
+      const container = document.getElementById('galleryHighlightContainer');
+      if (container) container.classList.add('hidden');
+      return;
+    }
+
+    const container = document.getElementById('galleryHighlightContainer');
+    if (container) container.classList.remove('hidden');
+
+    // Filter kandidat foto terbaik / memiliki thumbnail valid
+    const candidates = this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo');
+    const pool = candidates.length > 0 ? candidates : this.allMedia;
+
+    // Prioritaskan foto dengan catatan kenangan agar tampilan spotlight kaya cerita
+    const withNotes = pool.filter(m => m.notes && m.notes.trim());
+    const withoutNotes = pool.filter(m => !m.notes || !m.notes.trim());
+
+    const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+    const selected = [...shuffle(withNotes).slice(0, 4), ...shuffle(withoutNotes).slice(0, 3)];
+    this.highlightItems = shuffle(selected.length > 0 ? selected : pool).slice(0, 5);
+    this.currentHighlightIndex = 0;
+
+    this.renderHighlightSlide(0);
+    this.renderHighlightIndicators();
+    this.startHighlightTimer();
+  },
+
+  renderHighlightSlide(index) {
+    if (!this.highlightItems || this.highlightItems.length === 0) return;
+    if (index < 0) index = this.highlightItems.length - 1;
+    if (index >= this.highlightItems.length) index = 0;
+    this.currentHighlightIndex = index;
+
+    const item = this.highlightItems[index];
+    const wrapper = document.getElementById('highlightSlidesWrapper');
+    const titleEl = document.getElementById('highlightTitle');
+    const notesEl = document.getElementById('highlightNotes');
+    const albumEl = document.getElementById('highlightAlbumBadge');
+    const dateEl = document.getElementById('highlightDate');
+    const counterEl = document.getElementById('highlightCounter');
+
+    if (counterEl) {
+      counterEl.textContent = `${index + 1} / ${this.highlightItems.length}`;
+    }
+
+    if (titleEl) {
+      titleEl.textContent = item.name || 'Kenangan Terindah';
+    }
+
+    if (notesEl) {
+      if (item.notes && item.notes.trim()) {
+        notesEl.textContent = `“${item.notes}”`;
+        notesEl.classList.remove('hidden');
+      } else {
+        notesEl.textContent = '';
+        notesEl.classList.add('hidden');
+      }
+    }
+
+    if (albumEl) {
+      if (item.album) {
+        albumEl.textContent = item.album;
+        albumEl.classList.remove('hidden');
+      } else {
+        albumEl.classList.add('hidden');
+      }
+    }
+
+    if (dateEl) {
+      dateEl.textContent = this.formatShortDate(item.createdAt || item.date);
+    }
+
+    if (wrapper) {
+      const imgUrl = item.highResUrl || item.thumbnailUrl || (item.id ? `https://drive.google.com/thumbnail?id=${item.id}&sz=w2000` : '');
+      
+      const newSlide = document.createElement('div');
+      newSlide.className = 'absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0 highlight-slide-bg';
+      newSlide.style.backgroundImage = `url("${imgUrl}")`;
+
+      wrapper.appendChild(newSlide);
+
+      requestAnimationFrame(() => {
+        newSlide.classList.remove('opacity-0');
+        newSlide.classList.add('opacity-100');
+      });
+
+      const oldSlides = wrapper.querySelectorAll('.highlight-slide-bg');
+      if (oldSlides.length > 1) {
+        setTimeout(() => {
+          oldSlides.forEach((s, idx) => {
+            if (idx < oldSlides.length - 1) s.remove();
+          });
+        }, 1100);
+      }
+    }
+
+    this.updateHighlightIndicators();
+  },
+
+  nextHighlightSlide() {
+    if (!this.highlightItems || this.highlightItems.length <= 1) return;
+    const nextIdx = (this.currentHighlightIndex + 1) % this.highlightItems.length;
+    this.renderHighlightSlide(nextIdx);
+    this.startHighlightTimer();
+  },
+
+  prevHighlightSlide() {
+    if (!this.highlightItems || this.highlightItems.length <= 1) return;
+    const prevIdx = (this.currentHighlightIndex - 1 + this.highlightItems.length) % this.highlightItems.length;
+    this.renderHighlightSlide(prevIdx);
+    this.startHighlightTimer();
+  },
+
+  openCurrentHighlight() {
+    const item = this.highlightItems[this.currentHighlightIndex];
+    if (!item) return;
+    const globalIndex = this.allMedia.findIndex(m => m.id === item.id);
+    ModalManager.open(item, globalIndex !== -1 ? globalIndex : 0, this.allMedia);
+  },
+
+  renderHighlightIndicators() {
+    const container = document.getElementById('highlightIndicators');
+    if (!container) return;
+    container.innerHTML = '';
+
+    this.highlightItems.forEach((_, idx) => {
+      const bar = document.createElement('div');
+      bar.className = `highlight-bar ${idx === this.currentHighlightIndex ? 'active' : ''}`;
+      bar.setAttribute('role', 'button');
+      bar.setAttribute('aria-label', `Lihat sorotan ${idx + 1}`);
+      bar.innerHTML = '<div class="highlight-bar-fill"></div>';
+      bar.onclick = (e) => {
+        e.stopPropagation();
+        this.renderHighlightSlide(idx);
+        this.startHighlightTimer();
+      };
+      container.appendChild(bar);
+    });
+  },
+
+  updateHighlightIndicators() {
+    const container = document.getElementById('highlightIndicators');
+    if (!container) return;
+    const bars = container.querySelectorAll('.highlight-bar');
+    bars.forEach((bar, idx) => {
+      if (idx === this.currentHighlightIndex) {
+        bar.classList.add('active');
+        const fill = bar.querySelector('.highlight-bar-fill');
+        if (fill) {
+          fill.style.animation = 'none';
+          void fill.offsetWidth;
+          fill.style.animation = '';
+        }
+      } else {
+        bar.classList.remove('active');
+      }
+    });
+  },
+
+  startHighlightTimer() {
+    this.stopHighlightTimer();
+    if (!this.highlightItems || this.highlightItems.length <= 1) return;
+
+    this.highlightTimer = setInterval(() => {
+      if (!this.isHighlightHovered) {
+        this.nextHighlightSlide();
+      }
+    }, 5000); // Berganti otomatis setiap 5 detik
+  },
+
+  stopHighlightTimer() {
+    if (this.highlightTimer) {
+      clearInterval(this.highlightTimer);
+      this.highlightTimer = null;
+    }
+  },
+
+  bindHighlightEvents() {
+    const container = document.getElementById('galleryHighlightContainer');
+    if (!container || container.dataset.eventsBound) return;
+    container.dataset.eventsBound = 'true';
+
+    // Jeda otomatis saat kursor berada di atas slideshow
+    container.addEventListener('mouseenter', () => {
+      this.isHighlightHovered = true;
+    });
+
+    container.addEventListener('mouseleave', () => {
+      this.isHighlightHovered = false;
+    });
+
+    // Dukungan Touch Swipe untuk perangkat mobile
+    let touchStartX = 0;
+    container.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    container.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const diff = touchEndX - touchStartX;
+      if (diff > 45) {
+        this.prevHighlightSlide();
+      } else if (diff < -45) {
+        this.nextHighlightSlide();
+      }
+    }, { passive: true });
   },
 
   resetFilters() {

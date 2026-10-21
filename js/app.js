@@ -142,6 +142,17 @@ const App = {
       }
     });
 
+    // Pause/Resume Highlight Slideshow based on active page
+    if (page === 'gallery') {
+      if (window.GalleryManager && typeof GalleryManager.startHighlightTimer === 'function') {
+        GalleryManager.startHighlightTimer();
+      }
+    } else {
+      if (window.GalleryManager && typeof GalleryManager.stopHighlightTimer === 'function') {
+        GalleryManager.stopHighlightTimer();
+      }
+    }
+
     // Desktop Nav Styling
     const dGallery = document.getElementById('nav-btn-gallery');
     const dAlbums = document.getElementById('nav-btn-albums');

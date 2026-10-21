@@ -81,6 +81,9 @@ const ModalManager = {
 
   open(item, index = 0, list = []) {
     this.stopAutoSlide();
+    if (window.GalleryManager && typeof GalleryManager.stopHighlightTimer === 'function') {
+      GalleryManager.stopHighlightTimer();
+    }
     this.currentList = list && list.length ? list : [item];
     this.currentIndex = index >= 0 ? index : this.currentList.findIndex(i => i.id === item.id);
     if (this.currentIndex === -1) this.currentIndex = 0;
@@ -217,6 +220,9 @@ const ModalManager = {
 
   close() {
     this.stopAutoSlide();
+    if (window.GalleryManager && typeof GalleryManager.startHighlightTimer === 'function') {
+      GalleryManager.startHighlightTimer();
+    }
     const modal = document.getElementById('mediaModal');
     const content = document.getElementById('modalContent');
     if (!modal) return;
