@@ -147,26 +147,49 @@ const ModalManager = {
     // Clear previous media
     content.innerHTML = '';
 
+    const captionInner = document.getElementById('modalCaptionInner');
+
     if (item.type === 'photo') {
+      if (captionInner) captionInner.classList.remove('video-caption-compact');
       const img = document.createElement('img');
       img.src = item.highResUrl || item.viewUrl || item.thumbnailUrl;
       img.alt = item.name;
       img.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 animate-fadeInScale';
       content.appendChild(img);
     } else {
+      if (captionInner) captionInner.classList.add('video-caption-compact');
+
       const videoWrapper = document.createElement('div');
-      videoWrapper.className = 'w-full max-w-4xl h-[60vh] sm:h-[72vh] flex items-center justify-center relative animate-fadeInScale';
-      
-      // Menggunakan Google Drive Embedded Video Player yang mendukung pemutaran langsung dan streaming tanpa blokir CORS
+      videoWrapper.className = 'modal-video-card animate-fadeInScale';
+
+      // Preloader spinner elegan saat iframe Google Drive sedang dimuat
+      const loader = document.createElement('div');
+      loader.className = 'absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm z-10 transition-opacity duration-300 pointer-events-none';
+      loader.innerHTML = `
+        <div class="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-brand-950/80 border border-brand-500/40 flex items-center justify-center mb-2 animate-pulse text-brand-400 shadow-xl shadow-brand-950/80">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+        </div>
+        <span class="text-[11px] sm:text-xs text-rose-200/90 font-medium tracking-wide">Menyiapkan video...</span>
+      `;
+      videoWrapper.appendChild(loader);
+
       const previewUrl = item.embedPreviewUrl || (item.id ? `https://drive.google.com/file/d/${item.id}/preview` : item.streamUrl);
-      
+
       const iframe = document.createElement('iframe');
       iframe.src = previewUrl;
-      iframe.className = 'w-full h-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
-      iframe.allow = 'autoplay; encrypted-media; fullscreen';
+      iframe.className = 'w-full h-full border-0';
+      iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
       iframe.setAttribute('allowfullscreen', 'true');
-      iframe.setAttribute('frameborder', '0');
-      
+      iframe.setAttribute('loading', 'eager');
+
+      const removeLoader = () => {
+        loader.classList.add('opacity-0');
+        setTimeout(() => loader.remove(), 320);
+      };
+
+      iframe.onload = removeLoader;
+      setTimeout(removeLoader, 2500);
+
       videoWrapper.appendChild(iframe);
       content.appendChild(videoWrapper);
     }
@@ -200,6 +223,8 @@ const ModalManager = {
 
     modal.classList.add('opacity-0');
     if (content) content.classList.add('scale-95');
+    const captionInner = document.getElementById('modalCaptionInner');
+    if (captionInner) captionInner.classList.remove('video-caption-compact');
 
     // Stop active video / iframe playback
     if (content) {

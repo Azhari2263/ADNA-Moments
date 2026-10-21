@@ -795,8 +795,8 @@
     </div>
     
     <!-- Bottom Caption Bar -->
-    <div class="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-0 w-full text-center px-3 sm:px-4 pointer-events-none">
-      <div class="inline-block bg-black/80 backdrop-blur-md px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl border border-white/10 max-w-lg sm:max-w-xl w-full pointer-events-auto">
+    <div id="modalCaptionBar" class="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-0 w-full text-center px-3 sm:px-4 pointer-events-none transition-all duration-300 z-30">
+      <div id="modalCaptionInner" class="inline-block bg-black/80 backdrop-blur-md px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl border border-white/10 max-w-lg sm:max-w-xl w-full pointer-events-auto transition-all duration-300 shadow-2xl">
         <div class="flex items-center justify-center gap-2 mb-1">
           <span id="modalAlbumBadge" class="hidden px-2.5 py-0.5 rounded-full bg-brand-950 border border-brand-500/40 text-[10px] text-brand-300 font-semibold truncate max-w-[150px]"></span>
           <h4 id="modalTitle" class="text-white font-serif text-xs sm:text-base font-semibold truncate drop-shadow-md"></h4>
