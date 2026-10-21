@@ -664,44 +664,44 @@ function doPost(e) {
     // AKSI: TOGGLE STATUS FAVORIT FOTO / MEDIA
     // ========================================================
     if (action === "toggle_favorite") {
-      const fileId = String(payload.fileId || "").trim();
-      if (!fileId) throw new Error("ID File tidak disertakan.");
-
-      const file = DriveApp.getFileById(fileId);
-      if (!file) throw new Error("File tidak ditemukan di Google Drive.");
+      const fileIds = payload.fileIds || (payload.fileId ? [payload.fileId] : []);
+      if (!fileIds.length) throw new Error("ID File tidak disertakan.");
 
       const isFav = !!payload.favorite;
-      const rawDesc = file.getDescription() || "";
+      let updatedCount = 0;
 
-      // Ekstrak tag [DATE:...] yang sudah ada
-      let eventDate = "";
-      let notes = rawDesc;
-      const dateMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
-      if (dateMatch) {
-        eventDate = dateMatch[1];
-        notes = rawDesc.substring(dateMatch[0].length);
+      for (let i = 0; i < fileIds.length; i++) {
+        const fid = String(fileIds[i]).trim();
+        if (!fid) continue;
+        try {
+          const file = DriveApp.getFileById(fid);
+          if (file) {
+            const rawDesc = file.getDescription() || "";
+            let eventDate = "";
+            let notes = rawDesc;
+            const dateMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+            if (dateMatch) {
+              eventDate = dateMatch[1];
+              notes = rawDesc.substring(dateMatch[0].length);
+            }
+            notes = notes.replace(/\[FAV\]\s*/g, "").trim();
+            let finalDesc = "";
+            if (eventDate) finalDesc += "[DATE:" + eventDate + "] ";
+            if (isFav) finalDesc += "[FAV] ";
+            finalDesc += notes;
+            file.setDescription(finalDesc.trim());
+            updatedCount++;
+          }
+        } catch (err) {
+          console.warn("Gagal update favorite untuk file " + fid, err);
+        }
       }
-
-      // Bersihkan tag [FAV] yang lama dari teks catatan
-      notes = notes.replace(/\[FAV\]\s*/g, "").trim();
-
-      // Rekonstruksi deskripsi file
-      let finalDesc = "";
-      if (eventDate) {
-        finalDesc += "[DATE:" + eventDate + "] ";
-      }
-      if (isFav) {
-        finalDesc += "[FAV] ";
-      }
-      finalDesc += notes;
-
-      file.setDescription(finalDesc.trim());
 
       return createJsonResponse({
         status: "success",
-        message: isFav ? "Momen berhasil ditandai sebagai favorit." : "Momen berhasil dihapus dari favorit.",
+        message: isFav ? (updatedCount + " momen ditandai sebagai favorit.") : (updatedCount + " momen dihapus dari favorit."),
         data: {
-          fileId: fileId,
+          count: updatedCount,
           favorite: isFav
         }
       });
@@ -1322,11 +1322,8 @@ function formatFileObject(file, category, year, monthFolderName, albumName, albu
     eventDate = file.getDateCreated().toISOString().split('T')[0];
   }
 
-  let isFavorite = false;
-  if (notes.includes("[FAV]")) {
-    isFavorite = true;
-    notes = notes.replace(/\[FAV\]\s*/g, "").trim();
-  }
+  const isFavorite = rawDesc.indexOf("[FAV]") !== -1;
+  notes = notes.replace(/\[FAV\]\s*/g, "").trim();
 
   return {
     id: id,

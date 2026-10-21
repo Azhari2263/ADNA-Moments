@@ -484,42 +484,63 @@ const GalleryManager = {
     const container = document.getElementById('galleryHighlightContainer');
     if (container) container.classList.remove('hidden');
 
-    // Filter kandidat foto terbaik (utamakan tipe foto atau media dengan thumbnail valid)
-    const photos = this.allMedia.filter(m => m.type === 'photo');
-    const pool = photos.length >= 5 ? photos : (this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo').length > 0 ? this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || m.type === 'photo') : this.allMedia);
+    const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+    const isFav = (m) => window.FavoritesManager ? FavoritesManager.isFavorite(m.id) : false;
+    const isPhoto = (m) => m && (m.type === 'photo' || (m.mimeType && m.mimeType.startsWith('image/')) || (!m.type && !m.mimeType));
+
+    // 1. Ambil foto-foto yang telah ditandai sebagai favorit (❤️)
+    const favoritePhotos = this.allMedia.filter(m => isPhoto(m) && isFav(m));
+
+    let pool = [];
+
+    if (favoritePhotos.length > 0) {
+      // Hanya foto favorit yang ditampilkan, dipilih dan disusun secara acak
+      pool = shuffle(favoritePhotos);
+    } else {
+      // Fallback: Jika belum ada yang ditandai favorit maka pilih secara acak seperti yang saat ini (sebelumnya)
+      const photos = this.allMedia.filter(m => isPhoto(m));
+      const fallbackPool = photos.length >= 5 ? photos : (this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || isPhoto(m)).length > 0 ? this.allMedia.filter(m => m.highResUrl || m.thumbnailUrl || isPhoto(m)) : this.allMedia);
+
+      if (fallbackPool.length === 0) {
+        if (container) container.classList.add('hidden');
+        return;
+      }
+
+      const withNotes = fallbackPool.filter(m => m.notes && m.notes.trim());
+      const withoutNotes = fallbackPool.filter(m => !m.notes || !m.notes.trim());
+      pool = [...shuffle(withNotes), ...shuffle(withoutNotes)];
+    }
 
     if (pool.length === 0) {
       if (container) container.classList.add('hidden');
       return;
     }
 
-    // Prioritaskan foto dengan catatan kenangan agar tampilan spotlight kaya cerita
-    const withNotes = pool.filter(m => m.notes && m.notes.trim());
-    const withoutNotes = pool.filter(m => !m.notes || !m.notes.trim());
-
-    const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
-
-    // Ambil foto ber-catatan lebih dulu, lalu penuhi sisa slot dari foto lain hingga target 5 foto
-    const targetCount = Math.min(5, pool.length);
-    const combined = [...shuffle(withNotes), ...shuffle(withoutNotes)];
-
     // Hilangkan kemungkinan duplikasi ID
     const uniquePool = [];
     const seenIds = new Set();
-    for (const item of combined) {
+    for (const item of pool) {
       if (item && item.id && !seenIds.has(item.id)) {
         seenIds.add(item.id);
         uniquePool.push(item);
       }
     }
 
-    // Ambil tepat targetCount (5 foto jika total foto >= 5) lalu acak urutan tampilnya
+    // Ambil maksimal hingga 5 foto lalu acak urutan tampilnya
+    const targetCount = Math.min(5, uniquePool.length);
     this.highlightItems = shuffle(uniquePool.slice(0, targetCount));
     this.currentHighlightIndex = 0;
 
     this.renderHighlightSlide(0);
     this.renderHighlightIndicators();
     this.startHighlightTimer();
+  },
+
+  /**
+   * Menyesuaikan highlight slideshow secara otomatis saat status favorit berubah
+   */
+  updateHighlightsOnFavoriteChange() {
+    this.initHighlights();
   },
 
   renderHighlightSlide(index) {
@@ -657,6 +678,10 @@ const GalleryManager = {
   startHighlightTimer() {
     this.stopHighlightTimer();
     if (!this.highlightItems || this.highlightItems.length <= 1) return;
+
+    // Jangan rotasi otomatis saat modal preview sedang terbuka
+    const modal = document.getElementById('mediaModal');
+    if (modal && !modal.classList.contains('hidden')) return;
 
     this.highlightTimer = setInterval(() => {
       if (!this.isHighlightHovered) {

@@ -70,7 +70,12 @@ const FavoritesManager = {
       AlbumsManager.renderPaginatedMedia();
     }
 
-    // 5. Background sync to Google Apps Script cloud
+    // 5. Update Highlight Slideshow in Gallery automatically
+    if (window.GalleryManager && typeof GalleryManager.updateHighlightsOnFavoriteChange === 'function') {
+      GalleryManager.updateHighlightsOnFavoriteChange();
+    }
+
+    // 6. Background sync to Google Apps Script cloud
     this.syncToBackend(strId, willBeFav);
 
     // 6. User feedback toast
@@ -100,19 +105,24 @@ const FavoritesManager = {
     });
   },
 
-  async syncToBackend(fileId, isFav) {
+  async syncToBackend(fileIdOrIds, isFav) {
     if (!window.App || typeof App.getApiUrl !== 'function') return;
     const apiUrl = App.getApiUrl();
     if (!apiUrl) return;
     try {
+      const payload = {
+        action: 'toggle_favorite',
+        favorite: isFav
+      };
+      if (Array.isArray(fileIdOrIds)) {
+        payload.fileIds = fileIdOrIds;
+      } else {
+        payload.fileId = fileIdOrIds;
+      }
       await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'toggle_favorite',
-          fileId: fileId,
-          favorite: isFav
-        })
+        body: JSON.stringify(payload)
       });
     } catch (e) {
       console.warn('[FavoritesManager] Gagal sync ke cloud (tetap tersimpan di perangkat):', e);
@@ -120,22 +130,65 @@ const FavoritesManager = {
   },
 
   mergeFromApi(items) {
-    if (!Array.isArray(items)) return;
+    if (!Array.isArray(items) || items.length === 0) return;
     let changed = false;
-    items.forEach(item => {
-      if (item && item.id) {
+
+    // Periksa apakah cloud backend sudah aktif mendukung field 'favorite' boolean
+    const serverSupportsFavorite = items.some(item => item && typeof item.favorite === 'boolean');
+
+    if (serverSupportsFavorite) {
+      // Cloud sync aktif: sinkronkan data server ke perangkat ini
+      items.forEach(item => {
+        if (!item || !item.id) return;
         const idStr = String(item.id);
-        if (item.favorite) {
+        if (item.favorite === true) {
           if (!this.favoriteIds.has(idStr)) {
             this.favoriteIds.add(idStr);
             changed = true;
           }
-        } else if (this.favoriteIds.has(idStr)) {
+        } else if (item.favorite === false) {
+          // Jika di cloud sudah bukan favorit dan perangkat ini sudah sinkron dengan cloud
+          if (this.favoriteIds.has(idStr) && localStorage.getItem('adna_fav_cloud_synced')) {
+            this.favoriteIds.delete(idStr);
+            changed = true;
+          }
+        }
+      });
+
+      // Migrasi awal otomatis: Jika ada favorit lokal lama yang belum tercatat di Google Drive
+      if (!localStorage.getItem('adna_fav_cloud_synced') && this.favoriteIds.size > 0) {
+        const unsyncedIds = [];
+        this.favoriteIds.forEach(id => {
+          const match = items.find(m => String(m.id) === id);
+          if (match && match.favorite !== true) {
+            unsyncedIds.push(id);
+            match.favorite = true;
+          }
+        });
+        if (unsyncedIds.length > 0) {
+          this.syncToBackend(unsyncedIds, true);
+        }
+        localStorage.setItem('adna_fav_cloud_synced', 'true');
+      } else {
+        localStorage.setItem('adna_fav_cloud_synced', 'true');
+      }
+    } else {
+      // Backend versi lama (sebelum update code.gs dideploy): pertahankan status lokal
+      items.forEach(item => {
+        if (!item || !item.id) return;
+        const idStr = String(item.id);
+        if (this.favoriteIds.has(idStr)) {
           item.favorite = true;
         }
+      });
+    }
+
+    if (changed) {
+      this.save();
+      if (window.GalleryManager && typeof GalleryManager.updateHighlightsOnFavoriteChange === 'function') {
+        GalleryManager.updateHighlightsOnFavoriteChange();
       }
-    });
-    if (changed) this.save();
+    }
   }
 };
 
