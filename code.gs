@@ -705,14 +705,25 @@ function doPost(e) {
       let targetAlbumFolderId = "";
 
       if (albumId) {
-        targetFolder = DriveApp.getFolderById(albumId);
+        try {
+          targetFolder = DriveApp.getFolderById(albumId);
+          if (targetFolder) {
+            targetAlbumTitle = targetFolder.getName();
+            targetAlbumFolderId = targetFolder.getId();
+          }
+        } catch (e) {
+          targetFolder = null;
+        }
+      }
+      if (!targetFolder && albumName) {
+        // Cari folder album yang cocok di seluruh hierarki rootFolder
+        targetFolder = findAlbumFolderByName(rootFolder, albumName);
+        if (!targetFolder) {
+          targetFolder = getOrCreateFolder(monthFolder, albumName);
+        }
         targetAlbumTitle = targetFolder.getName();
         targetAlbumFolderId = targetFolder.getId();
-      } else if (albumName) {
-        targetFolder = getOrCreateFolder(monthFolder, albumName);
-        targetAlbumTitle = targetFolder.getName();
-        targetAlbumFolderId = targetFolder.getId();
-      } else {
+      } else if (!targetFolder) {
         const subFolderName = isVideo ? "Video" : "Foto";
         targetFolder = getOrCreateFolder(monthFolder, subFolderName);
       }
@@ -736,6 +747,140 @@ function doPost(e) {
         status: "success",
         message: "File berhasil disimpan ke " + targetFolder.getName(),
         data: formatFileObject(file, mediaCategory, year, monthFolderName, targetAlbumTitle, targetAlbumFolderId)
+      });
+    }
+
+    // ========================================================
+    // AKSI 1.1: UPLOAD FILE BESAR BERTAHAP (CHUNKED UPLOAD > 25MB)
+    // ========================================================
+    if (action === "upload_chunk") {
+      const uploadId = String(payload.uploadId || "").trim();
+      const chunkIndex = parseInt(payload.chunkIndex, 10);
+      const totalChunks = parseInt(payload.totalChunks, 10);
+      const base64Chunk = payload.base64;
+      const fileName = payload.fileName || ("ADNA_" + new Date().getTime());
+      const mimeType = payload.mimeType || "application/octet-stream";
+      const uploadDate = (payload.date || "").trim();
+      let year = String(payload.year || "");
+      let rawMonth = String(payload.month || "");
+      if (uploadDate && (!year || !rawMonth)) {
+        const parts = uploadDate.split('-');
+        if (parts.length >= 2) {
+          year = year || parts[0];
+          rawMonth = rawMonth || parts[1];
+        }
+      }
+      year = year || String(new Date().getFullYear());
+      rawMonth = rawMonth || String(new Date().getMonth() + 1).padStart(2, '0');
+      const monthFolderName = MONTH_NAMES[rawMonth] || rawMonth;
+      const notes = (payload.notes || "").trim();
+      const albumId = (payload.albumId || "").trim();
+      const albumName = (payload.album || "").trim();
+
+      if (!uploadId) throw new Error("Upload ID tidak disertakan.");
+      if (isNaN(chunkIndex) || isNaN(totalChunks)) throw new Error("Index atau Total Chunk tidak valid.");
+      if (!base64Chunk) throw new Error("Data chunk Base64 kosong.");
+
+      // Buat / dapatkan folder temporary untuk upload sesi ini
+      const tempUploadsFolder = getOrCreateFolder(rootFolder, ".temp_chunks");
+      const sessionFolder = getOrCreateFolder(tempUploadsFolder, uploadId);
+
+      // Simpan chunk saat ini sebagai file sementara
+      const decodedChunk = Utilities.base64Decode(base64Chunk);
+      const chunkBlob = Utilities.newBlob(decodedChunk, "application/octet-stream", "chunk_" + chunkIndex);
+      sessionFolder.createFile(chunkBlob);
+
+      // Jika masih ada chunk berikutnya, kembalikan status sukses parsial
+      if (chunkIndex < totalChunks - 1) {
+        return createJsonResponse({
+          status: "success",
+          chunkIndex: chunkIndex,
+          totalChunks: totalChunks,
+          progress: Math.round(((chunkIndex + 1) / totalChunks) * 100),
+          message: "Bagian " + (chunkIndex + 1) + " dari " + totalChunks + " berhasil diunggah."
+        });
+      }
+
+      // SEMUA CHUNK LENGKAP: Gabungkan semua chunk menjadi satu file utuh
+      const isVideo = mimeType.indexOf("video/") === 0;
+      const mediaCategory = isVideo ? "video" : "photo";
+
+      const yearFolder = getOrCreateFolder(rootFolder, year);
+      const monthFolder = getOrCreateFolder(yearFolder, monthFolderName);
+
+      let targetFolder = null;
+      let targetAlbumTitle = "";
+      let targetAlbumFolderId = "";
+
+      if (albumId) {
+        try {
+          targetFolder = DriveApp.getFolderById(albumId);
+          if (targetFolder) {
+            targetAlbumTitle = targetFolder.getName();
+            targetAlbumFolderId = targetFolder.getId();
+          }
+        } catch (e) {
+          targetFolder = null;
+        }
+      }
+      if (!targetFolder && albumName) {
+        targetFolder = findAlbumFolderByName(rootFolder, albumName);
+        if (!targetFolder) {
+          targetFolder = getOrCreateFolder(monthFolder, albumName);
+        }
+        targetAlbumTitle = targetFolder.getName();
+        targetAlbumFolderId = targetFolder.getId();
+      } else if (!targetFolder) {
+        const subFolderName = isVideo ? "Video" : "Foto";
+        targetFolder = getOrCreateFolder(monthFolder, subFolderName);
+      }
+
+      // Gabungkan seluruh blob chunk
+      const chunkBlobs = [];
+      let totalBytesLength = 0;
+      for (let c = 0; c < totalChunks; c++) {
+        const cIter = sessionFolder.getFilesByName("chunk_" + c);
+        if (!cIter.hasNext()) {
+          throw new Error("Bagian chunk_" + c + " hilang atau gagal diunggah.");
+        }
+        const cf = cIter.next();
+        const b = cf.getBlob();
+        chunkBlobs.push(b);
+        totalBytesLength += b.getBytes().length;
+      }
+
+      const combinedBytes = new Int8Array(totalBytesLength);
+      let offset = 0;
+      for (let c = 0; c < chunkBlobs.length; c++) {
+        const bytes = chunkBlobs[c].getBytes();
+        combinedBytes.set(bytes, offset);
+        offset += bytes.length;
+      }
+
+      const finalBlob = Utilities.newBlob(Array.from(combinedBytes), mimeType, fileName);
+      const finalFile = targetFolder.createFile(finalBlob);
+
+      let finalDesc = notes;
+      if (uploadDate) {
+        finalDesc = "[DATE:" + uploadDate + "] " + notes;
+      }
+      if (finalDesc) {
+        finalFile.setDescription(finalDesc);
+      }
+
+      finalFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+      // Bersihkan folder sesi chunk
+      try {
+        sessionFolder.setTrashed(true);
+      } catch (cleanErr) {
+        console.warn("Gagal membersihkan temp folder chunk: " + cleanErr);
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "File (" + fileName + ") berhasil disimpan ke " + targetFolder.getName(),
+        data: formatFileObject(finalFile, mediaCategory, year, monthFolderName, targetAlbumTitle, targetAlbumFolderId)
       });
     }
 
@@ -1055,7 +1200,7 @@ function formatFileObject(file, category, year, monthFolderName, albumName, albu
     month: monthFolderName || "",
     thumbnailUrl: "https://drive.google.com/thumbnail?id=" + id + "&sz=w1000",
     highResUrl: "https://drive.google.com/thumbnail?id=" + id + "&sz=w2000",
-    streamUrl: "https://drive.google.com/uc?export=download&id=" + id,
+    streamUrl: "https://drive.google.com/file/d/" + id + "/preview",
     embedPreviewUrl: "https://drive.google.com/file/d/" + id + "/preview",
     viewUrl: file.getUrl()
   };

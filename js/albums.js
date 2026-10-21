@@ -681,14 +681,24 @@ const AlbumsManager = {
         App.showToast(data.message || 'Album berhasil disimpan!', 'success');
         this.closeModal();
 
-        // Jika ada file baru yang diunggah langsung ke album ini, tambahkan ke antrean upload
+        const createdData = data.data;
+        const createdId = createdData ? createdData.id : '';
+        const createdTitle = createdData ? createdData.title : title;
+
+        // Segera sinkronkan daftar album agar dropdown mengenali album baru
+        await this.fetchAlbums();
+        if (window.GalleryManager) GalleryManager.fetchGallery();
+
+        // Pilih album yang baru dibuat pada form Unggah
+        const uploadAlbumSelect = document.getElementById('uploadAlbum');
+        if (uploadAlbumSelect && createdTitle) {
+          uploadAlbumSelect.value = createdTitle;
+        }
+
+        // Jika ada file baru yang dipilih di modal album, masukkan langsung dengan target album yang tepat
         if (this.newFilesToUpload.length > 0) {
           App.showToast(`Mengunggah ${this.newFilesToUpload.length} foto baru ke album...`, 'info');
-          // Arahkan nilai dropdown upload ke album baru
-          const uploadAlbumSelect = document.getElementById('uploadAlbum');
-          if (uploadAlbumSelect) uploadAlbumSelect.value = title;
-          
-          UploadManager.handleFiles(this.newFilesToUpload);
+          UploadManager.handleFiles(this.newFilesToUpload, { id: createdId, title: createdTitle });
           this.newFilesToUpload = [];
         }
 
@@ -706,9 +716,6 @@ const AlbumsManager = {
             detailDate.textContent = dateVal ? `Tanggal Momen: ${this.formatDate(dateVal)}` : (this.currentAlbum.year ? `${this.currentAlbum.year} • ${this.currentAlbum.month || ''}` : this.formatDate(this.currentAlbum.createdAt));
           }
         }
-
-        await this.fetchAlbums();
-        if (window.GalleryManager) GalleryManager.fetchGallery();
       } else {
         App.showToast(data.message || 'Gagal menyimpan album.', 'error');
       }
@@ -721,6 +728,24 @@ const AlbumsManager = {
         saveBtn.textContent = 'Simpan Album';
       }
     }
+  },
+
+  /**
+   * Buka Halaman Upload dan otomatis pilih album saat ini
+   */
+  openUploadForCurrentAlbum() {
+    if (!this.currentAlbum) {
+      App.switchPage('upload');
+      return;
+    }
+    const albumTitle = this.currentAlbum.title;
+    App.switchPage('upload');
+    setTimeout(() => {
+      const uploadAlbumSelect = document.getElementById('uploadAlbum');
+      if (uploadAlbumSelect) {
+        uploadAlbumSelect.value = albumTitle;
+      }
+    }, 50);
   },
 
   /**

@@ -466,7 +466,7 @@
             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             <span>Hapus<span class="hidden md:inline"> Album</span></span>
           </button>
-          <button onclick="App.switchPage('upload')" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap">
+          <button onclick="AlbumsManager.openUploadForCurrentAlbum()" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition whitespace-nowrap">
             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             <span>+ <span class="hidden sm:inline">Tambah </span>Kenangan</span>
           </button>
@@ -588,7 +588,7 @@
             </div>
             <p class="text-white text-xs sm:text-sm font-semibold mb-1">Ketuk untuk memilih foto atau video</p>
             <p class="text-slate-400 text-[11px] sm:text-xs">Atau seret dan lepas file langsung ke area ini</p>
-            <p class="text-rose-300/60 text-[10px] sm:text-[11px] mt-2">Format: JPG, PNG, WEBP, MP4, MOV (Maks. 25MB per file)</p>
+            <p class="text-rose-300/60 text-[10px] sm:text-[11px] mt-2">Format: JPG, PNG, WEBP, MP4, MOV (Mendukung foto & video resolusi tinggi tanpa batasan ukuran)</p>
           </div>
 
           <!-- Queue Header & Action -->

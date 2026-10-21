@@ -155,16 +155,19 @@ const ModalManager = {
       content.appendChild(img);
     } else {
       const videoWrapper = document.createElement('div');
-      videoWrapper.className = 'w-full max-w-4xl max-h-[70vh] sm:max-h-[75vh] flex items-center justify-center';
+      videoWrapper.className = 'w-full max-w-4xl h-[60vh] sm:h-[72vh] flex items-center justify-center relative animate-fadeInScale';
       
-      const video = document.createElement('video');
-      video.src = item.streamUrl;
-      video.controls = true;
-      video.autoplay = false; // Nonaktifkan auto-play/auto-slide sementara
-      video.playsInline = true;
-      video.className = 'max-w-full max-h-[70vh] sm:max-h-[75vh] w-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
+      // Menggunakan Google Drive Embedded Video Player yang mendukung pemutaran langsung dan streaming tanpa blokir CORS
+      const previewUrl = item.embedPreviewUrl || (item.id ? `https://drive.google.com/file/d/${item.id}/preview` : item.streamUrl);
       
-      videoWrapper.appendChild(video);
+      const iframe = document.createElement('iframe');
+      iframe.src = previewUrl;
+      iframe.className = 'w-full h-full rounded-2xl shadow-2xl ring-1 ring-white/10 bg-black';
+      iframe.allow = 'autoplay; encrypted-media; fullscreen';
+      iframe.setAttribute('allowfullscreen', 'true');
+      iframe.setAttribute('frameborder', '0');
+      
+      videoWrapper.appendChild(iframe);
       content.appendChild(videoWrapper);
     }
 
@@ -198,8 +201,12 @@ const ModalManager = {
     modal.classList.add('opacity-0');
     if (content) content.classList.add('scale-95');
 
-    // Stop active video playback
+    // Stop active video / iframe playback
     if (content) {
+      const iframe = content.querySelector('iframe');
+      if (iframe) {
+        iframe.src = 'about:blank';
+      }
       const video = content.querySelector('video');
       if (video) {
         video.pause();

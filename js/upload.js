@@ -75,9 +75,21 @@ const UploadManager = {
     });
   },
 
-  handleFiles(fileList) {
-    const maxSizeBytes = 25 * 1024 * 1024; // 25 MB limit for GAS Base64 stability
-    const selectedAlbum = document.getElementById('uploadAlbum')?.value || '';
+  handleFiles(fileList, targetAlbum = null) {
+    // Ambil info album terpilih beserta folder ID-nya
+    let selectedAlbum = '';
+    let selectedAlbumId = '';
+
+    if (targetAlbum && (targetAlbum.id || targetAlbum.title)) {
+      selectedAlbum = targetAlbum.title || '';
+      selectedAlbumId = targetAlbum.id || '';
+    } else {
+      const uploadSelect = document.getElementById('uploadAlbum');
+      const selectedOpt = uploadSelect?.selectedOptions?.[0];
+      selectedAlbum = selectedOpt?.value || '';
+      selectedAlbumId = selectedOpt?.dataset?.albumId || '';
+    }
+
     const initialNotes = document.getElementById('uploadNotes')?.value?.trim() || '';
 
     for (let i = 0; i < fileList.length; i++) {
@@ -87,11 +99,6 @@ const UploadManager = {
 
       if (!isVideo && !isImage) {
         App.showToast(`Format "${file.name}" tidak didukung. Harap pilih Foto atau Video.`, 'error');
-        continue;
-      }
-
-      if (file.size > maxSizeBytes) {
-        App.showToast(`Ukuran "${file.name}" (${this.formatFileSize(file.size)}) melebihi batas 25MB untuk Google Apps Script.`, 'warning');
         continue;
       }
 
@@ -106,8 +113,10 @@ const UploadManager = {
         size: file.size,
         previewUrl,
         album: selectedAlbum,
+        albumId: selectedAlbumId,
         notes: initialNotes,
         status: 'pending', // pending | uploading | success | error
+        statusText: '',
         errorMsg: ''
       };
 
@@ -191,41 +200,98 @@ const UploadManager = {
     }
 
     try {
-      const base64Data = await this.fileToBase64(nextItem.file);
+      const uploadSelect = document.getElementById('uploadAlbum');
+      const currentOpt = uploadSelect?.selectedOptions?.[0];
+      const currentAlbumTitle = currentOpt?.value || '';
+      const currentAlbumId = currentOpt?.dataset?.albumId || '';
 
       const dateVal = document.getElementById('uploadDate')?.value || new Date().toISOString().split('T')[0];
       const parts = dateVal.split('-');
       const year = parts[0] || document.getElementById('uploadYear')?.value || String(new Date().getFullYear());
       const month = parts[1] || document.getElementById('uploadMonth')?.value || String(new Date().getMonth() + 1).padStart(2, '0');
-      const album = nextItem.album || document.getElementById('uploadAlbum')?.value || '';
+      const album = nextItem.album || currentAlbumTitle;
+      const albumId = nextItem.albumId || currentAlbumId;
       const notes = nextItem.notes || document.getElementById('uploadNotes')?.value?.trim() || '';
 
-      const payload = {
-        action: 'upload',
-        fileName: nextItem.name,
-        mimeType: nextItem.type,
-        base64: base64Data,
-        date: dateVal,
-        year: year,
-        month: month,
-        album: album,
-        notes: notes
-      };
+      const isImage = nextItem.type.startsWith('image/');
+      const CHUNK_THRESHOLD = 20 * 1024 * 1024; // 20 MB
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
+      // Jika file berupa foto atau ukurannya <= 20 MB: Unggah langsung (foto terkompresi otomatis via canvas)
+      if (isImage || nextItem.file.size <= CHUNK_THRESHOLD) {
+        const base64Data = await this.fileToBase64(nextItem.file);
 
-      const result = await response.json();
+        const payload = {
+          action: 'upload',
+          fileName: nextItem.name,
+          mimeType: nextItem.type,
+          base64: base64Data,
+          date: dateVal,
+          year: year,
+          month: month,
+          albumId: albumId,
+          album: album,
+          notes: notes
+        };
 
-      if (result.status === 'success') {
-        nextItem.status = 'success';
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          nextItem.status = 'success';
+        } else {
+          nextItem.status = 'error';
+          nextItem.errorMsg = result.message || 'Gagal menyimpan';
+          App.showToast(result.message || 'Gagal mengunggah file', 'error');
+        }
       } else {
-        nextItem.status = 'error';
-        nextItem.errorMsg = result.message || 'Gagal menyimpan';
-        App.showToast(result.message || 'Gagal mengunggah file', 'error');
+        // File besar (> 20 MB, misal Video HD/4K): Unggah bertahap (Chunked Upload) tanpa batasan ukuran
+        const CHUNK_SIZE = 12 * 1024 * 1024; // 12 MB per chunk
+        const totalChunks = Math.ceil(nextItem.file.size / CHUNK_SIZE);
+        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+
+        for (let c = 0; c < totalChunks; c++) {
+          const start = c * CHUNK_SIZE;
+          const end = Math.min(nextItem.file.size, start + CHUNK_SIZE);
+          const chunkBlob = nextItem.file.slice(start, end);
+          const base64Chunk = await this.readBlobAsBase64(chunkBlob);
+
+          nextItem.statusText = `Mengunggah (${Math.round(((c + 1) / totalChunks) * 100)}%)`;
+          this.renderQueue();
+
+          const chunkPayload = {
+            action: 'upload_chunk',
+            uploadId: uploadId,
+            chunkIndex: c,
+            totalChunks: totalChunks,
+            base64: base64Chunk,
+            fileName: nextItem.name,
+            mimeType: nextItem.type,
+            date: dateVal,
+            year: year,
+            month: month,
+            albumId: albumId,
+            album: album,
+            notes: notes
+          };
+
+          const chunkRes = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(chunkPayload)
+          });
+          const chunkData = await chunkRes.json();
+
+          if (chunkData.status !== 'success') {
+            throw new Error(chunkData.message || `Gagal mengunggah bagian ${c + 1}`);
+          }
+        }
+
+        nextItem.status = 'success';
       }
     } catch (err) {
       console.error('Upload Error:', err);
@@ -239,6 +305,22 @@ const UploadManager = {
       // Continue next item
       this.processNextInQueue();
     }
+  },
+
+  /**
+   * Konversi Blob murni ke Base64 (untuk chunking upload)
+   */
+  readBlobAsBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(blob);
+    });
   },
 
   /**
@@ -330,7 +412,8 @@ const UploadManager = {
       if (item.status === 'pending') {
         statusBadge = '<span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full">Menunggu</span>';
       } else if (item.status === 'uploading') {
-        statusBadge = '<span class="text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Mengunggah</span>';
+        const uploadLabel = item.statusText || 'Mengunggah';
+        statusBadge = `<span class="text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse"><svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> ${uploadLabel}</span>`;
       } else if (item.status === 'success') {
         statusBadge = '<span class="text-[10px] text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Selesai</span>';
       } else if (item.status === 'error') {

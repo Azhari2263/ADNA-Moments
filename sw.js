@@ -4,7 +4,7 @@
  * Provides offline caching, fast load times, and PWA capabilities.
  */
 
-const CACHE_NAME = 'adna-moments-v5';
+const CACHE_NAME = 'adna-moments-v6';
 
 const STATIC_ASSETS = [
   './',
