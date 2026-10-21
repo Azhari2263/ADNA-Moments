@@ -147,6 +147,10 @@ const ModalManager = {
     if (driveLink) driveLink.href = item.viewUrl || '#';
     if (downloadLink) downloadLink.href = item.streamUrl || item.viewUrl || '#';
 
+    // Update status tombol favorit
+    const isFav = window.FavoritesManager ? FavoritesManager.isFavorite(item.id) : false;
+    this.updateFavoriteBtn(isFav);
+
     // Clear previous media
     content.innerHTML = '';
 
@@ -546,6 +550,27 @@ const ModalManager = {
       console.error('Delete Media Error:', e);
       App.showToast('Gagal menghubungi server Google Drive.', 'error');
     }
+  },
+
+  updateFavoriteBtn(isFav) {
+    const btn = document.getElementById('modalFavoriteBtn');
+    if (!btn) return;
+    btn.setAttribute('aria-label', isFav ? 'Hapus dari favorit' : 'Tandai favorit');
+    btn.setAttribute('title', isFav ? 'Hapus dari favorit' : 'Tandai favorit');
+    if (isFav) {
+      btn.className = 'p-2 sm:p-2.5 bg-rose-500/25 border border-rose-500/50 hover:bg-rose-600 text-rose-500 rounded-full backdrop-blur-md transition flex-shrink-0 active:scale-95 shadow-lg shadow-rose-950/50';
+      btn.innerHTML = '<svg class="w-4 h-4 sm:w-5 sm:h-5 fill-rose-500 text-rose-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+    } else {
+      btn.className = 'p-2 sm:p-2.5 bg-white/10 hover:bg-rose-600/80 rounded-full text-white backdrop-blur-md transition flex-shrink-0 active:scale-95';
+      btn.innerHTML = '<svg class="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
+    }
+  },
+
+  toggleFavoriteCurrent() {
+    const item = this.currentList[this.currentIndex];
+    if (!item) return;
+    const isFav = window.FavoritesManager ? FavoritesManager.toggle(item.id) : false;
+    this.updateFavoriteBtn(isFav);
   },
 
   formatDate(isoString) {

@@ -20,6 +20,7 @@ const App = {
     this.initSettingsModal();
 
     // Initialize Sub-Managers
+    if (window.FavoritesManager) FavoritesManager.init();
     if (window.ModalManager) ModalManager.init();
     if (window.UploadManager) UploadManager.init();
     if (window.GalleryManager) GalleryManager.init();

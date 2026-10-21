@@ -486,13 +486,20 @@ function doPost(e) {
           currentDate = dateMatch[1];
           existingNotes = existingDesc.substring(dateMatch[0].length);
         }
+        const isFav = existingNotes.includes("[FAV]");
+        existingNotes = existingNotes.replace(/\[FAV\]\s*/g, "").trim();
+
         const notesToSave = newNotes !== null ? newNotes : existingNotes;
         const dateToSave = newDate || currentDate;
-        let finalDesc = notesToSave;
+        let finalDesc = "";
         if (dateToSave) {
-          finalDesc = "[DATE:" + dateToSave + "] " + notesToSave;
+          finalDesc += "[DATE:" + dateToSave + "] ";
         }
-        file.setDescription(finalDesc);
+        if (isFav) {
+          finalDesc += "[FAV] ";
+        }
+        finalDesc += notesToSave;
+        file.setDescription(finalDesc.trim());
       }
 
       // Pindahkan folder jika album diubah
@@ -630,7 +637,14 @@ function doPost(e) {
           if (dMatch) {
             notes = rawDesc.substring(dMatch[0].length);
           }
-          f.setDescription("[DATE:" + targetDate + "] " + notes);
+          const isFav = notes.includes("[FAV]");
+          notes = notes.replace(/\[FAV\]\s*/g, "").trim();
+          let newDesc = "[DATE:" + targetDate + "] ";
+          if (isFav) {
+            newDesc += "[FAV] ";
+          }
+          newDesc += notes;
+          f.setDescription(newDesc.trim());
           updatedCount++;
         }
       }
@@ -642,6 +656,53 @@ function doPost(e) {
           albumId: albumId,
           targetDate: targetDate,
           updatedCount: updatedCount
+        }
+      });
+    }
+
+    // ========================================================
+    // AKSI: TOGGLE STATUS FAVORIT FOTO / MEDIA
+    // ========================================================
+    if (action === "toggle_favorite") {
+      const fileId = String(payload.fileId || "").trim();
+      if (!fileId) throw new Error("ID File tidak disertakan.");
+
+      const file = DriveApp.getFileById(fileId);
+      if (!file) throw new Error("File tidak ditemukan di Google Drive.");
+
+      const isFav = !!payload.favorite;
+      const rawDesc = file.getDescription() || "";
+
+      // Ekstrak tag [DATE:...] yang sudah ada
+      let eventDate = "";
+      let notes = rawDesc;
+      const dateMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+      if (dateMatch) {
+        eventDate = dateMatch[1];
+        notes = rawDesc.substring(dateMatch[0].length);
+      }
+
+      // Bersihkan tag [FAV] yang lama dari teks catatan
+      notes = notes.replace(/\[FAV\]\s*/g, "").trim();
+
+      // Rekonstruksi deskripsi file
+      let finalDesc = "";
+      if (eventDate) {
+        finalDesc += "[DATE:" + eventDate + "] ";
+      }
+      if (isFav) {
+        finalDesc += "[FAV] ";
+      }
+      finalDesc += notes;
+
+      file.setDescription(finalDesc.trim());
+
+      return createJsonResponse({
+        status: "success",
+        message: isFav ? "Momen berhasil ditandai sebagai favorit." : "Momen berhasil dihapus dari favorit.",
+        data: {
+          fileId: fileId,
+          favorite: isFav
         }
       });
     }
@@ -1261,12 +1322,19 @@ function formatFileObject(file, category, year, monthFolderName, albumName, albu
     eventDate = file.getDateCreated().toISOString().split('T')[0];
   }
 
+  let isFavorite = false;
+  if (notes.includes("[FAV]")) {
+    isFavorite = true;
+    notes = notes.replace(/\[FAV\]\s*/g, "").trim();
+  }
+
   return {
     id: id,
     name: file.getName(),
     description: notes,
     notes: notes,
     date: eventDate,
+    favorite: isFavorite,
     album: albumName || "",
     albumId: albumId || "",
     mimeType: mime,

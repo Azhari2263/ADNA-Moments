@@ -306,12 +306,25 @@
           </div>
 
           <!-- Sort Select -->
-          <div class="col-span-2 sm:col-span-1 sm:flex-initial">
+          <div class="col-span-1 sm:flex-initial">
             <select id="sortSelect" class="w-full sm:w-auto glass-input text-xs sm:text-sm rounded-xl p-2.5 outline-none transition cursor-pointer">
               <option value="newest">Terbaru Dulu</option>
               <option value="oldest">Terlama Dulu</option>
               <option value="name">Nama (A - Z)</option>
             </select>
+          </div>
+
+          <!-- Filter Hanya Momen Favorit -->
+          <div class="col-span-1 sm:flex-initial">
+            <button 
+              id="filterFavoriteBtn" 
+              onclick="GalleryManager.toggleFavoriteFilter()" 
+              type="button"
+              class="w-full sm:w-auto px-3 sm:px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-rose-500/50 transition inline-flex items-center justify-center gap-1.5 active:scale-95" 
+              title="Tampilkan Hanya Momen Favorit">
+              <svg id="filterFavoriteIcon" class="w-4 h-4 text-rose-500 flex-shrink-0 transition-transform active:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+              <span>Hanya Favorit</span>
+            </button>
           </div>
 
           <!-- Action Buttons -->
@@ -566,6 +579,22 @@
           </button>
 
         </div>
+      </div>
+
+      <!-- Album Sub-Bar: Filter Hanya Momen Favorit -->
+      <div class="flex items-center justify-between gap-3 mb-4 pt-2 border-t border-white/5">
+        <p class="text-xs sm:text-sm text-slate-400">
+          Koleksi momen di dalam album ini
+        </p>
+        <button 
+          id="albumFilterFavoriteBtn" 
+          onclick="AlbumsManager.toggleFavoriteFilter()" 
+          type="button"
+          class="px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-rose-500/50 transition inline-flex items-center gap-1.5 active:scale-95" 
+          title="Tampilkan Hanya Momen Favorit di Album Ini">
+          <svg id="albumFilterFavoriteIcon" class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          <span>Hanya Momen Favorit</span>
+        </button>
       </div>
 
       <!-- Loading State -->
@@ -869,6 +898,11 @@
     </div>
 
     <div class="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 sm:top-5 sm:right-6 flex items-center gap-1.5 sm:gap-2 z-50">
+      <!-- Favorite Button -->
+      <button id="modalFavoriteBtn" onclick="ModalManager.toggleFavoriteCurrent()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-rose-600/80 rounded-full text-white backdrop-blur-md transition flex-shrink-0 active:scale-95" title="Tandai Sebagai Favorit">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      </button>
+
       <!-- Edit Button -->
       <button onclick="ModalManager.openEditModal()" class="p-2 sm:p-2.5 bg-white/10 hover:bg-brand-600 rounded-full text-white backdrop-blur-md transition flex-shrink-0" title="Edit Nama & Catatan Kenangan">
         <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
@@ -1546,6 +1580,7 @@
   <!-- ============================================== -->
   <!-- MODULAR SCRIPTS                                -->
   <!-- ============================================== -->
+  <script src="js/favorites.js"></script>
   <script src="js/modal.js"></script>
   <script src="js/gallery.js"></script>
   <script src="js/albums.js"></script>

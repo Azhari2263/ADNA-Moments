@@ -11,6 +11,7 @@ const GalleryManager = {
   filterDate: '',
   searchQuery: '',
   sortBy: 'newest',
+  filterFavorite: false,
   currentPage: 1,
   itemsPerPage: 20, // Default 20 momen per halaman untuk performa ringan
   isLoading: false,
@@ -100,6 +101,25 @@ const GalleryManager = {
     this.applyFilters();
   },
 
+  toggleFavoriteFilter() {
+    this.filterFavorite = !this.filterFavorite;
+    this.updateFavoriteFilterUI();
+    this.applyFilters();
+  },
+
+  updateFavoriteFilterUI() {
+    const btn = document.getElementById('filterFavoriteBtn');
+    const icon = document.getElementById('filterFavoriteIcon');
+    if (!btn) return;
+    if (this.filterFavorite) {
+      btn.className = 'w-full sm:w-auto px-3 sm:px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-rose-500/20 border border-rose-500/60 text-rose-200 shadow-lg shadow-rose-950/40 transition inline-flex items-center justify-center gap-1.5 active:scale-95';
+      if (icon) icon.classList.add('fill-rose-500');
+    } else {
+      btn.className = 'w-full sm:w-auto px-3 sm:px-3.5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-rose-500/50 transition inline-flex items-center justify-center gap-1.5 active:scale-95';
+      if (icon) icon.classList.remove('fill-rose-500');
+    }
+  },
+
   async fetchGallery() {
     const apiUrl = App.getApiUrl();
     if (!apiUrl || !apiUrl.includes('/exec')) {
@@ -133,6 +153,7 @@ const GalleryManager = {
         this.allMedia = result.data || [];
 
         // Discover all unique years from response
+        if (window.FavoritesManager) FavoritesManager.mergeFromApi(this.allMedia);
         const years = this.allMedia.map(item => item.year).filter(Boolean);
         this.populateYearOptions(years);
 
@@ -184,7 +205,13 @@ const GalleryManager = {
         matchSearch = name.includes(this.searchQuery) || notes.includes(this.searchQuery) || album.includes(this.searchQuery);
       }
 
-      return matchType && matchYear && matchDate && matchSearch;
+      // Favorite match
+      let matchFavorite = true;
+      if (this.filterFavorite) {
+        matchFavorite = window.FavoritesManager ? FavoritesManager.isFavorite(item.id) : false;
+      }
+
+      return matchType && matchYear && matchDate && matchSearch && matchFavorite;
     });
 
     // Sorting
@@ -212,6 +239,15 @@ const GalleryManager = {
     if (this.filteredMedia.length === 0) {
       empty.classList.remove('hidden');
       pagControls.classList.add('hidden');
+      const emptyTitle = empty.querySelector('h3');
+      const emptyText = empty.querySelector('p');
+      if (this.filterFavorite) {
+        if (emptyTitle) emptyTitle.textContent = 'Belum Ada Momen Favorit';
+        if (emptyText) emptyText.textContent = 'Kamu belum menandai foto atau video sebagai favorit. Ketuk tanda hati (❤️) pada momen apa pun untuk menjadikannya favorit.';
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'Belum Ada Momen';
+        if (emptyText) emptyText.textContent = 'Tidak ada foto atau video yang sesuai dengan filter ini. Mulai abadikan momen sekarang.';
+      }
       return;
     }
 
@@ -233,6 +269,7 @@ const GalleryManager = {
       const isVideo = item.type === 'video';
       const delay = (index % 8) * 0.04;
       const isSelected = this.selectedIds.has(item.id);
+      const isFav = window.FavoritesManager ? FavoritesManager.isFavorite(item.id) : false;
 
       const card = document.createElement('div');
       card.className = `media-card cursor-pointer animate-fadeInScale aspect-[3/4] sm:aspect-[4/5] ${
@@ -301,12 +338,36 @@ const GalleryManager = {
 
         <!-- Video Badge -->
         ${isVideo ? `
-          <div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">
+          <div class="absolute top-2.5 ${this.isSelectMode ? 'left-10' : 'left-2.5'} bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">
             <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white ml-[1px]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z"/>
             </svg>
           </div>
         ` : ''}
+
+        <!-- Favorite Button -->
+        <button 
+          type="button"
+          data-fav-id="${item.id}"
+          data-is-fav="${isFav ? 'true' : 'false'}"
+          onclick="event.stopPropagation(); FavoritesManager.toggle('${item.id}', this);"
+          class="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-full backdrop-blur-md border transition-all active:scale-90 ${
+            isFav 
+              ? 'bg-rose-500/25 border-rose-500/50 text-rose-500 shadow-lg shadow-rose-950/50' 
+              : 'bg-black/50 border-white/10 text-white/70 hover:text-rose-400 hover:bg-black/70'
+          }"
+          title="${isFav ? 'Hapus dari favorit' : 'Tandai favorit'}"
+          aria-label="${isFav ? 'Hapus dari favorit' : 'Tandai favorit'}">
+          ${isFav ? `
+            <svg class="w-4 h-4 fill-rose-500 text-rose-500" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          ` : `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          `}
+        </button>
       `;
 
       grid.appendChild(card);
@@ -658,6 +719,9 @@ const GalleryManager = {
     if (yearSelect) yearSelect.value = '';
     if (dateInput) dateInput.value = '';
     if (sortSelect) sortSelect.value = 'newest';
+
+    this.filterFavorite = false;
+    this.updateFavoriteFilterUI();
 
     this.setTypeFilter('all');
   },

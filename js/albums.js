@@ -15,6 +15,7 @@ const AlbumsManager = {
   allAlbums: [],
   currentAlbum: null,
   currentAlbumMedia: [],
+  filterFavorite: false,
   isLoading: false,
   currentPage: 1,
   itemsPerPage: 20, // Default 20 momen per halaman untuk performa ringan
@@ -221,6 +222,8 @@ const AlbumsManager = {
   async openAlbumDetail(album) {
     this.currentAlbum = album;
     this.currentPage = 1;
+    this.filterFavorite = false;
+    this.updateFavoriteFilterUI();
     App.switchPage('album-detail');
 
     const titleEl = document.getElementById('detailAlbumTitle');
@@ -264,6 +267,7 @@ const AlbumsManager = {
 
       if (result.status === 'success') {
         this.currentAlbumMedia = result.data || [];
+        if (window.FavoritesManager) FavoritesManager.mergeFromApi(this.currentAlbumMedia);
         this.currentPage = 1;
         this.renderPaginatedMedia();
         
@@ -290,6 +294,26 @@ const AlbumsManager = {
     this.renderPaginatedMedia();
   },
 
+  toggleFavoriteFilter() {
+    this.filterFavorite = !this.filterFavorite;
+    this.updateFavoriteFilterUI();
+    this.currentPage = 1;
+    this.renderPaginatedMedia();
+  },
+
+  updateFavoriteFilterUI() {
+    const btn = document.getElementById('albumFilterFavoriteBtn');
+    const icon = document.getElementById('albumFilterFavoriteIcon');
+    if (!btn) return;
+    if (this.filterFavorite) {
+      btn.className = 'px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold rounded-xl bg-rose-500/20 border border-rose-500/60 text-rose-200 shadow-lg shadow-rose-950/40 transition inline-flex items-center gap-1.5 active:scale-95';
+      if (icon) icon.classList.add('fill-rose-500');
+    } else {
+      btn.className = 'px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold rounded-xl glass-input text-slate-300 hover:text-white hover:border-rose-500/50 transition inline-flex items-center gap-1.5 active:scale-95';
+      if (icon) icon.classList.remove('fill-rose-500');
+    }
+  },
+
   renderPaginatedMedia() {
     const grid = document.getElementById('detailAlbumGrid');
     const empty = document.getElementById('detailAlbumEmpty');
@@ -298,15 +322,31 @@ const AlbumsManager = {
 
     grid.innerHTML = '';
 
-    if (!this.currentAlbumMedia || this.currentAlbumMedia.length === 0) {
-      if (empty) empty.classList.remove('hidden');
+    let displayedMedia = this.currentAlbumMedia || [];
+    if (this.filterFavorite) {
+      displayedMedia = displayedMedia.filter(item => window.FavoritesManager ? FavoritesManager.isFavorite(item.id) : true);
+    }
+
+    if (displayedMedia.length === 0) {
+      if (empty) {
+        empty.classList.remove('hidden');
+        const emptyTitle = empty.querySelector('h3');
+        const emptyText = empty.querySelector('p');
+        if (this.filterFavorite) {
+          if (emptyTitle) emptyTitle.textContent = 'Belum Ada Favorit di Album Ini';
+          if (emptyText) emptyText.textContent = 'Belum ada foto atau video di album ini yang ditandai sebagai favorit. Ketuk tanda hati (❤️) pada momen apa pun untuk menjadikannya favorit.';
+        } else {
+          if (emptyTitle) emptyTitle.textContent = 'Album Masih Kosong';
+          if (emptyText) emptyText.textContent = 'Belum ada foto atau video yang dimasukkan ke dalam album ini.';
+        }
+      }
       if (pagControls) pagControls.classList.add('hidden');
       return;
     }
 
     if (empty) empty.classList.add('hidden');
 
-    const totalItems = this.currentAlbumMedia.length;
+    const totalItems = displayedMedia.length;
     const totalPages = Math.ceil(totalItems / this.itemsPerPage) || 1;
 
     if (this.currentPage > totalPages) this.currentPage = totalPages;
@@ -314,13 +354,14 @@ const AlbumsManager = {
 
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = Math.min(startIndex + this.itemsPerPage, totalItems);
-    const pageItems = this.currentAlbumMedia.slice(startIndex, endIndex);
+    const pageItems = displayedMedia.slice(startIndex, endIndex);
 
     // Render cards untuk halaman saat ini
     pageItems.forEach((item, index) => {
       const globalIndex = startIndex + index;
       const isVideo = item.type === 'video';
       const delay = (index % 8) * 0.04;
+      const isFav = window.FavoritesManager ? FavoritesManager.isFavorite(item.id) : false;
 
       const card = document.createElement('div');
       card.className = 'media-card cursor-pointer animate-fadeInScale aspect-[3/4] sm:aspect-[4/5]';
@@ -329,40 +370,65 @@ const AlbumsManager = {
       card.setAttribute('tabindex', '0');
 
       card.onclick = () => {
-        ModalManager.open(item, globalIndex, this.currentAlbumMedia);
+        ModalManager.open(item, globalIndex, displayedMedia);
       };
 
       card.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          ModalManager.open(item, globalIndex, this.currentAlbumMedia);
+          ModalManager.open(item, globalIndex, displayedMedia);
         }
       };
 
       const thumbUrl = item.thumbnailUrl || 'icons/icon-512.png';
-      const notePreview = item.notes ? ('<p class="text-[11px] text-rose-100/90 italic line-clamp-1 mt-0.5">“' + item.notes + '”</p>') : '';
+      const notePreview = item.notes ? (`<p class="text-[11px] text-rose-100/90 italic line-clamp-1 mt-0.5">“${item.notes}”</p>`) : '';
 
-      card.innerHTML = 
-        '<img src="' + thumbUrl + '" alt="' + item.name + '" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 ease-out" onerror="this.onerror=null; this.src=\'icons/icon-512.png\'" />' +
-        '<div class="card-overlay absolute inset-0 flex flex-col justify-end p-3 sm:p-4 z-10">' +
-          '<h3 class="text-white font-serif text-xs sm:text-sm md:text-base font-semibold truncate drop-shadow-md">' +
-            item.name +
-          '</h3>' +
-          notePreview +
-          '<div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1.5">' +
-            '<span>' + GalleryManager.formatShortDate(item.date || item.createdAt) + '</span>' +
-            '<span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">' +
-              (isVideo ? 'Video' : 'Foto') +
-            '</span>' +
-          '</div>' +
-        '</div>' +
-        (isVideo ? (
-          '<div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">' +
-            '<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white ml-[1px]" fill="currentColor" viewBox="0 0 24 24">' +
-              '<path d="M8 5v14l11-7z"/>' +
-            '</svg>' +
-          '</div>'
-        ) : '');
+      const favBtnHtml = `
+        <button 
+          type="button"
+          data-fav-id="${item.id}"
+          data-is-fav="${isFav ? 'true' : 'false'}"
+          onclick="event.stopPropagation(); FavoritesManager.toggle('${item.id}', this);"
+          class="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-full backdrop-blur-md border transition-all active:scale-90 ${
+            isFav 
+              ? 'bg-rose-500/25 border-rose-500/50 text-rose-500 shadow-lg shadow-rose-950/50' 
+              : 'bg-black/50 border-white/10 text-white/70 hover:text-rose-400 hover:bg-black/70'
+          }"
+          title="${isFav ? 'Hapus dari favorit' : 'Tandai favorit'}"
+          aria-label="${isFav ? 'Hapus dari favorit' : 'Tandai favorit'}">
+          ${isFav ? `
+            <svg class="w-4 h-4 fill-rose-500 text-rose-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          ` : `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          `}
+        </button>
+      `;
+
+      const videoBadgeHtml = isVideo ? `
+        <div class="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md p-1.5 rounded-full z-10 shadow-lg border border-white/15">
+          <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white ml-[1px]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </div>
+      ` : '';
+
+      card.innerHTML = `
+        <img src="${thumbUrl}" alt="${item.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 ease-out" onerror="this.onerror=null; this.src='icons/icon-512.png'" />
+        ${favBtnHtml}
+        ${videoBadgeHtml}
+        <div class="card-overlay absolute inset-0 flex flex-col justify-end p-3 sm:p-4 z-10">
+          <h3 class="text-white font-serif text-xs sm:text-sm md:text-base font-semibold truncate drop-shadow-md">
+            ${item.name}
+          </h3>
+          ${notePreview}
+          <div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1.5">
+            <span>${GalleryManager.formatShortDate(item.date || item.createdAt)}</span>
+            <span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">
+              ${isVideo ? 'Video' : 'Foto'}
+            </span>
+          </div>
+        </div>
+      `;
 
       grid.appendChild(card);
     });
