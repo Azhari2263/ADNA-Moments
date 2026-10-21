@@ -381,8 +381,14 @@ const ModalManager = {
     const item = this.currentList[this.currentIndex];
     if (!item) return;
 
-    const confirmMsg = `Hapus permanen "${item.name}" dari Google Drive?\n\nFile terkait akan dihapus secara permanen dan tidak dapat dipulihkan kembali.`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await App.showConfirm({
+      title: 'Hapus Kenangan?',
+      message: `Hapus permanen "${item.name}" dari Google Drive? File terkait akan dihapus secara permanen dan tidak dapat dipulihkan.`,
+      confirmText: 'Ya, Hapus Permanen',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!confirmed) return;
 
     const apiUrl = App.getApiUrl();
     if (!apiUrl || !apiUrl.includes('/exec')) {

@@ -546,8 +546,14 @@ const GalleryManager = {
     }
 
     const count = this.selectedIds.size;
-    const confirmMsg = `Hapus permanen ${count} foto/video terpilih dari Google Drive?\n\nFile terkait akan dihapus secara permanen dan tidak dapat dipulihkan kembali.`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await App.showConfirm({
+      title: 'Hapus Kenangan Terpilih?',
+      message: `Hapus permanen ${count} foto/video terpilih dari Google Drive? File terkait akan dihapus secara permanen dan tidak dapat dipulihkan.`,
+      confirmText: 'Ya, Hapus Semua',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!confirmed) return;
 
     const apiUrl = App.getApiUrl();
     if (!apiUrl || !apiUrl.includes('/exec')) {

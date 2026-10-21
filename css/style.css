@@ -247,7 +247,7 @@ button, a, input, select, textarea {
   /* Sembunyikan semua elemen aplikasi di layar kecuali wadah photobook */
   header, nav, footer, #bottom-nav, #btnScrollTop, .no-print,
   #gallery-page, #albums-page, #album-detail-page, #upload-page, #bucketlist-page,
-  #mediaModal, #albumFormModal, #assignAlbumModal, #editMediaModal, #bucketlistModal, #bucketlinkPhotoModal,
+  #mediaModal, #albumFormModal, #assignAlbumModal, #editMediaModal, #bucketlistModal, #bucketlinkPhotoModal, #confirmModal,
   .photobook-controls {
     display: none !important;
   }

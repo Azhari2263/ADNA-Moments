@@ -9,6 +9,11 @@ const App = {
   deferredPrompt: null,
 
   init() {
+    // Intercept native browser alert to use custom pop-up modal
+    window.alert = (msg) => {
+      this.showAlert({ message: String(msg) });
+    };
+
     this.initRouter();
     this.initPWA();
     this.initNetworkListeners();
@@ -345,6 +350,186 @@ const App = {
       toast.classList.remove('toast-active');
       setTimeout(() => toast.remove(), 320);
     }, duration);
+  },
+
+  /* ----------------------------------------------------
+   * CUSTOM POP-UP CONFIRMATION / ALERT DIALOG
+   * ---------------------------------------------------- */
+  showConfirm({
+    title = 'Konfirmasi',
+    message = 'Apakah Anda yakin ingin melanjutkan tindakan ini?',
+    confirmText = 'Lanjutkan',
+    cancelText = 'Batal',
+    type = 'danger'
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('confirmModal');
+      const titleEl = document.getElementById('confirmModalTitle');
+      const messageEl = document.getElementById('confirmModalMessage');
+      const iconWrapper = document.getElementById('confirmModalIconWrapper');
+      const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+      const cancelBtn = document.getElementById('confirmModalCancelBtn');
+
+      if (!modal || !confirmBtn || !cancelBtn) {
+        resolve(window.confirm(message));
+        return;
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      if (messageEl) messageEl.textContent = message;
+      confirmBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+      cancelBtn.style.display = '';
+
+      if (type === 'danger') {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 hover:shadow-rose-500/25 active:scale-95';
+      } else if (type === 'warning') {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 hover:shadow-amber-500/25 active:scale-95';
+      } else {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-brand-500/20 text-brand-400 border border-brand-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 hover:shadow-brand-500/25 active:scale-95';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        modal.classList.add('opacity-100');
+      });
+
+      const cleanup = (result) => {
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }, 220);
+
+        confirmBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      };
+
+      const onConfirm = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdrop = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') cleanup(false);
+      };
+
+      confirmBtn.addEventListener('click', onConfirm, { once: true });
+      cancelBtn.addEventListener('click', onCancel, { once: true });
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+    });
+  },
+
+  showAlert({
+    title = 'Pemberitahuan',
+    message = '',
+    confirmText = 'Mengerti',
+    type = 'info'
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('confirmModal');
+      const titleEl = document.getElementById('confirmModalTitle');
+      const messageEl = document.getElementById('confirmModalMessage');
+      const iconWrapper = document.getElementById('confirmModalIconWrapper');
+      const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+      const cancelBtn = document.getElementById('confirmModalCancelBtn');
+
+      if (!modal || !confirmBtn) {
+        window.alert(message);
+        resolve();
+        return;
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      if (messageEl) messageEl.textContent = message;
+      confirmBtn.textContent = confirmText;
+      if (cancelBtn) cancelBtn.style.display = 'none';
+
+      if (type === 'danger' || type === 'error') {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95';
+      } else if (type === 'warning') {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95';
+      } else {
+        iconWrapper.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg bg-brand-500/20 text-brand-400 border border-brand-500/30';
+        iconWrapper.innerHTML = `
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        `;
+        confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 active:scale-95';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        modal.classList.add('opacity-100');
+      });
+
+      const cleanup = () => {
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          if (cancelBtn) cancelBtn.style.display = '';
+        }, 220);
+
+        confirmBtn.removeEventListener('click', onConfirm);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve();
+      };
+
+      const onConfirm = () => cleanup();
+      const onBackdrop = (e) => {
+        if (e.target === modal) cleanup();
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape' || e.key === 'Enter') cleanup();
+      };
+
+      confirmBtn.addEventListener('click', onConfirm, { once: true });
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+    });
   }
 };
 

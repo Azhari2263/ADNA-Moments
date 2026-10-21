@@ -736,8 +736,14 @@ const AlbumsManager = {
       return;
     }
 
-    const confirmMsg = `Hapus album "${title}" secara permanen dari Google Drive?\n\nPERINGATAN: Seluruh foto dan video di dalam folder album ini juga akan dihapus secara permanen dari Google Drive dan tidak dapat dipulihkan.`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await App.showConfirm({
+      title: 'Hapus Album Kenangan?',
+      message: `Hapus album "${title}" secara permanen dari Google Drive? Seluruh foto dan video di dalam folder album ini juga akan dihapus secara permanen dan tidak dapat dipulihkan.`,
+      confirmText: 'Ya, Hapus Album',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!confirmed) return;
 
     const apiUrl = App.getApiUrl();
     if (!apiUrl || !apiUrl.includes('/exec')) {

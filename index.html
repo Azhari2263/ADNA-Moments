@@ -1384,6 +1384,40 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- CUSTOM POP-UP CONFIRMATION / ALERT MODAL       -->
+  <!-- ============================================== -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 transition-all duration-300 opacity-0" role="dialog" aria-modal="true">
+    <div class="glass-panel p-6 sm:p-7 rounded-3xl max-w-sm sm:max-w-md w-full border border-white/10 shadow-2xl animate-fadeInScale my-auto flex flex-col items-center text-center">
+      
+      <!-- Icon Container -->
+      <div id="confirmModalIconWrapper" class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </div>
+
+      <!-- Title & Message -->
+      <h3 id="confirmModalTitle" class="text-base sm:text-lg font-serif font-bold text-white mb-2 leading-snug">
+        Konfirmasi
+      </h3>
+      <p id="confirmModalMessage" class="text-xs sm:text-sm text-rose-100/80 mb-6 leading-relaxed max-w-xs sm:max-w-sm">
+        Apakah Anda yakin ingin melanjutkan tindakan ini?
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-center gap-3 w-full">
+        <button id="confirmModalCancelBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition">
+          Batal
+        </button>
+        <button id="confirmModalConfirmBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-lg transition">
+          Lanjutkan
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- TOAST NOTIFICATION CONTAINER                   -->
   <!-- ============================================== -->
   <div id="toastContainer" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2.5 pointer-events-none w-[92%] sm:w-auto max-w-sm"></div>

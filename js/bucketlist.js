@@ -282,13 +282,20 @@ const BucketListManager = {
    * Jika belum selesai -> buka modal konfirmasi wujudkan impian + buat album kenangan
    * Jika sudah selesai -> konfirmasi pembatalan kembali ke belum selesai
    */
-  handleCompleteClick(itemId) {
+  async handleCompleteClick(itemId) {
     const item = this.items.find(i => i.id === itemId);
     if (!item) return;
 
     const isDone = item.completed === true || String(item.completed).toUpperCase() === 'TRUE';
     if (isDone) {
-      if (confirm(`Ubah status impian "${item.title}" kembali menjadi Belum Terwujud?`)) {
+      const confirmed = await App.showConfirm({
+        title: 'Ubah Status Impian?',
+        message: `Ubah status impian "${item.title}" kembali menjadi Belum Terwujud?`,
+        confirmText: 'Ubah Status',
+        cancelText: 'Batal',
+        type: 'warning'
+      });
+      if (confirmed) {
         this.toggleComplete(itemId, false);
       }
     } else {
@@ -811,7 +818,16 @@ const BucketListManager = {
   },
 
   async deleteItem(id) {
-    if (!confirm('Hapus impian ini dari daftar rencana kalian?')) return;
+    const item = this.items.find(i => i.id === id);
+    const title = item ? ` "${item.title}"` : '';
+    const confirmed = await App.showConfirm({
+      title: 'Hapus Impian?',
+      message: `Hapus impian${title} dari daftar rencana kalian?`,
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    });
+    if (!confirmed) return;
     this.items = this.items.filter(i => i.id !== id);
     this.saveToCache();
     this.render();
