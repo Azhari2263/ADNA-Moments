@@ -289,7 +289,7 @@ const GalleryManager = {
           </h3>
           ${item.notes ? `<p class="text-[10px] sm:text-[11px] text-rose-100/90 italic line-clamp-1 mt-0.5">“${item.notes}”</p>` : ''}
           <div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1">
-            <span>${this.formatShortDate(item.createdAt)}</span>
+            <span>${this.formatShortDate(item.date || item.createdAt)}</span>
             <div class="flex items-center gap-1">
               ${item.album ? `<span class="px-1.5 py-0.5 rounded-full bg-brand-950/70 text-[9px] text-brand-300 border border-brand-500/30 truncate max-w-[80px]">${item.album}</span>` : ''}
               <span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">
@@ -483,7 +483,7 @@ const GalleryManager = {
     }
 
     if (dateEl) {
-      dateEl.textContent = this.formatShortDate(item.createdAt || item.date);
+      dateEl.textContent = this.formatShortDate(item.date || item.createdAt);
     }
 
     if (wrapper) {

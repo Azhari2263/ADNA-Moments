@@ -118,7 +118,7 @@ const ModalManager = {
 
     // Update metadata
     if (titleEl) titleEl.textContent = item.name;
-    if (dateEl) dateEl.textContent = this.formatDate(item.createdAt);
+    if (dateEl) dateEl.textContent = this.formatDate(item.date || item.createdAt);
     if (counterEl) {
       counterEl.textContent = `${this.currentIndex + 1} / ${this.currentList.length}`;
     }

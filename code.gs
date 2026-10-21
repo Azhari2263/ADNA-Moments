@@ -202,7 +202,9 @@ function doGet(e) {
       }
 
       albumFiles.sort(function(a, b) {
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        const dateA = a.date ? new Date(a.date).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.date ? new Date(b.date).getTime() : new Date(b.createdAt).getTime();
+        return dateB - dateA;
       });
 
       let singleDesc = targetAlbumFolder.getDescription() || "";
@@ -279,7 +281,9 @@ function doGet(e) {
     }
 
     mediaList.sort(function(a, b) {
-      return new Date(b.createdAt) - new Date(a.createdAt);
+      const dateA = a.date ? new Date(a.date).getTime() : new Date(a.createdAt).getTime();
+      const dateB = b.date ? new Date(b.date).getTime() : new Date(b.createdAt).getTime();
+      return dateB - dateA;
     });
 
     return createJsonResponse({
@@ -304,7 +308,8 @@ function doGet(e) {
  * 2. action: "create_album" (Buat folder Album di Tahun -> Bulan -> [Nama Album] + opsi assign file)
  * 3. action: "assign_media_to_album" (Pindahkan satu/banyak foto dari galeri ke Album tertentu atau keluarkan)
  * 4. action: "update_media" (Edit nama file, catatan kenangan, atau pindah album)
- * 5. action: "update_album" (Edit nama atau deskripsi album)
+ * 5. action: "update_album" (Edit nama, deskripsi, tanggal album + opsi sinkron tanggal foto)
+ * 6. action: "sync_album_date_to_media" (Samakan tanggal momen seluruh foto di album ke tanggal momen album)
  */
 function doPost(e) {
   try {
@@ -531,6 +536,7 @@ function doPost(e) {
       const newTitle = (payload.title || "").trim();
       const newDesc = payload.description !== undefined ? String(payload.description).trim() : null;
       const newDate = (payload.date || "").trim();
+      const syncMediaDates = payload.syncMediaDates === true;
 
       if (!albumId) throw new Error("ID Album tidak disertakan.");
 
@@ -557,14 +563,85 @@ function doPost(e) {
       }
       albumFolder.setDescription(fullDesc);
 
+      let syncedCount = 0;
+      if (syncMediaDates && dateToSave) {
+        const filesIter = albumFolder.getFiles();
+        while (filesIter.hasNext()) {
+          const f = filesIter.next();
+          if (!f.isTrashed()) {
+            const rawDesc = f.getDescription() || "";
+            let notes = rawDesc;
+            const fMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+            if (fMatch) {
+              notes = rawDesc.substring(fMatch[0].length);
+            }
+            f.setDescription("[DATE:" + dateToSave + "] " + notes);
+            syncedCount++;
+          }
+        }
+      }
+
       return createJsonResponse({
         status: "success",
-        message: "Informasi album berhasil diperbarui.",
+        message: syncMediaDates && syncedCount > 0
+          ? "Informasi album & tanggal momen " + syncedCount + " foto/video berhasil diselaraskan."
+          : "Informasi album berhasil diperbarui.",
         data: {
           id: albumFolder.getId(),
           title: albumFolder.getName(),
           description: notesToSave,
-          date: dateToSave
+          date: dateToSave,
+          syncedMediaCount: syncedCount
+        }
+      });
+    }
+
+    // ========================================================
+    // AKSI: SAMAKAN TANGGAL MOMEN FOTO DI DALAM ALBUM
+    // ========================================================
+    if (action === "sync_album_date_to_media") {
+      const albumId = payload.albumId;
+      if (!albumId) throw new Error("ID Album tidak disertakan.");
+
+      const albumFolder = DriveApp.getFolderById(albumId);
+      if (!albumFolder) throw new Error("Folder album tidak ditemukan.");
+
+      let targetDate = (payload.date || "").trim();
+      if (!targetDate) {
+        const aDesc = albumFolder.getDescription() || "";
+        const aMatch = aDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+        if (aMatch) {
+          targetDate = aMatch[1];
+        } else {
+          targetDate = albumFolder.getDateCreated().toISOString().split('T')[0];
+        }
+      }
+
+      if (!targetDate) throw new Error("Tanggal momen album tidak valid.");
+
+      let updatedCount = 0;
+      const filesIter = albumFolder.getFiles();
+      while (filesIter.hasNext()) {
+        const f = filesIter.next();
+        if (!f.isTrashed()) {
+          const rawDesc = f.getDescription() || "";
+          let notes = rawDesc;
+          const dMatch = rawDesc.match(/^\[DATE:(\d{4}-\d{2}-\d{2})\]\s*/);
+          if (dMatch) {
+            notes = rawDesc.substring(dMatch[0].length);
+          }
+          f.setDescription("[DATE:" + targetDate + "] " + notes);
+          updatedCount++;
+        }
+      }
+
+      return createJsonResponse({
+        status: "success",
+        message: "Tanggal momen " + updatedCount + " foto & video di dalam album berhasil disamakan ke " + targetDate + ".",
+        data: {
+          albumId: albumId,
+          targetDate: targetDate,
+          updatedCount: updatedCount
         }
       });
     }

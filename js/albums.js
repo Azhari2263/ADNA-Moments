@@ -334,7 +334,7 @@ const AlbumsManager = {
           </h3>
           ${notePreview}
           <div class="flex items-center justify-between text-[10px] sm:text-xs text-rose-200/80 mt-1.5">
-            <span>${GalleryManager.formatShortDate(item.createdAt)}</span>
+            <span>${GalleryManager.formatShortDate(item.date || item.createdAt)}</span>
             <span class="capitalize px-1.5 py-0.5 rounded-full bg-black/40 text-[9px] border border-white/10">
               ${isVideo ? 'Video' : 'Foto'}
             </span>
@@ -379,6 +379,11 @@ const AlbumsManager = {
     this.updatePickerBadge();
 
     // Tampilkan pemilihan timeline & media picker di mode create
+    const syncDatesContainer = document.getElementById('albumSyncDatesContainer');
+    const syncDatesCheckbox = document.getElementById('albumSyncDatesCheckbox');
+    if (syncDatesContainer) syncDatesContainer.classList.add('hidden');
+    if (syncDatesCheckbox) syncDatesCheckbox.checked = false;
+
     if (timelineSection) timelineSection.classList.remove('hidden');
     if (yearMonthRow) yearMonthRow.classList.remove('hidden');
     if (mediaPickerSection) mediaPickerSection.classList.remove('hidden');
@@ -587,6 +592,12 @@ const AlbumsManager = {
     const curDate = this.currentAlbum.date || (this.currentAlbum.createdAt ? this.currentAlbum.createdAt.split('T')[0] : '');
     if (dateInput) dateInput.value = curDate;
 
+    // Tampilkan opsi samakan tanggal momen foto di mode edit
+    const editSyncContainer = document.getElementById('albumSyncDatesContainer');
+    const editSyncCheckbox = document.getElementById('albumSyncDatesCheckbox');
+    if (editSyncContainer) editSyncContainer.classList.remove('hidden');
+    if (editSyncCheckbox) editSyncCheckbox.checked = false;
+
     // Tampilkan bagian tanggal momen tetapi sembunyikan pemilihan folder tahun/bulan dan media picker saat edit info
     if (timelineSection) timelineSection.classList.remove('hidden');
     if (yearMonthRow) yearMonthRow.classList.add('hidden');
@@ -654,12 +665,16 @@ const AlbumsManager = {
     try {
       const selectedIds = Array.from(this.selectedGalleryIds);
 
+      const syncCheckbox = document.getElementById('albumSyncDatesCheckbox');
+      const syncMediaDates = (isEdit && syncCheckbox) ? syncCheckbox.checked : false;
+
       const payload = isEdit ? {
         action: 'update_album',
         albumId: this.currentAlbum ? this.currentAlbum.id : '',
         title: title,
         date: dateVal,
-        description: desc
+        description: desc,
+        syncMediaDates: syncMediaDates
       } : {
         action: 'create_album',
         title: title,
@@ -715,6 +730,9 @@ const AlbumsManager = {
           if (detailDate) {
             detailDate.textContent = dateVal ? `Tanggal Momen: ${this.formatDate(dateVal)}` : (this.currentAlbum.year ? `${this.currentAlbum.year} • ${this.currentAlbum.month || ''}` : this.formatDate(this.currentAlbum.createdAt));
           }
+          if (syncMediaDates) {
+            await this.fetchAlbumMedia(this.currentAlbum);
+          }
         }
       } else {
         App.showToast(data.message || 'Gagal menyimpan album.', 'error');
@@ -746,6 +764,70 @@ const AlbumsManager = {
         uploadAlbumSelect.value = albumTitle;
       }
     }, 50);
+  },
+
+  /**
+   * Menyamakan tanggal momen seluruh foto/video di album saat ini dengan tanggal momen albumnya
+   */
+  async syncAlbumDateToAllMedia() {
+    if (!this.currentAlbum) {
+      App.showToast('Buka salah satu album terlebih dahulu.', 'warning');
+      return;
+    }
+
+    const album = this.currentAlbum;
+    const albumDate = album.date || (album.createdAt ? album.createdAt.split('T')[0] : '');
+
+    if (!albumDate) {
+      App.showToast('Album ini belum memiliki tanggal momen. Silakan atur tanggal momen album terlebih dahulu melalui menu Edit Album.', 'warning');
+      return;
+    }
+
+    const formattedDate = this.formatDate(albumDate);
+    const mediaCount = this.currentAlbumMedia ? this.currentAlbumMedia.length : 0;
+
+    const confirmed = await App.showConfirm({
+      title: 'Samakan Tanggal Momen Foto?',
+      message: `Ubah tanggal momen ${mediaCount > 0 ? mediaCount + ' ' : ''}foto dan video di dalam album "${album.title}" menjadi "${formattedDate}" (${albumDate}) mengikuti tanggal momen album?`,
+      confirmText: 'Ya, Samakan Tanggal',
+      cancelText: 'Batal',
+      type: 'info'
+    });
+    if (!confirmed) return;
+
+    const apiUrl = App.getApiUrl();
+    if (!apiUrl || !apiUrl.includes('/exec')) {
+      App.showToast('URL API belum diatur.', 'error');
+      return;
+    }
+
+    App.showToast('Menyamakan tanggal momen foto & video di album...', 'info');
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'sync_album_date_to_media',
+          albumId: album.id,
+          date: albumDate
+        })
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        App.showToast(data.message || 'Tanggal momen seluruh foto berhasil disamakan!', 'success');
+
+        // Segera perbarui data isi album & galeri
+        await this.fetchAlbumMedia(album);
+        if (window.GalleryManager) GalleryManager.fetchGallery();
+      } else {
+        App.showToast(data.message || 'Gagal menyamakan tanggal momen foto.', 'error');
+      }
+    } catch (err) {
+      console.error('Sync album date error:', err);
+      App.showToast('Gagal menghubungi server Google Drive.', 'error');
+    }
   },
 
   /**
