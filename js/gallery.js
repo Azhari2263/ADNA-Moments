@@ -12,7 +12,7 @@ const GalleryManager = {
   searchQuery: '',
   sortBy: 'newest',
   currentPage: 1,
-  itemsPerPage: 12, // Default 12 momen per halaman untuk performa ringan
+  itemsPerPage: 15, // Default 15 momen per halaman untuk performa ringan
   isLoading: false,
 
   // Netflix-style Highlight Slideshow
@@ -396,7 +396,7 @@ const GalleryManager = {
   },
 
   setItemsPerPage(count) {
-    this.itemsPerPage = parseInt(count, 10) || 12;
+    this.itemsPerPage = parseInt(count, 10) || 15;
     this.currentPage = 1;
     this.renderPaginated();
     this.scrollToGallery();
